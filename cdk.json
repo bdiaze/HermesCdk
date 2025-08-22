@@ -1,5 +1,5 @@
 {
-  "app": "dotnet run --project src/BDiazECorreosMasivosCdk/BDiazECorreosMasivosCdk.csproj",
+  "app": "dotnet run --project src/HermesCdk/HermesCdk.csproj",
   "watch": {
     "include": [
       "**"
