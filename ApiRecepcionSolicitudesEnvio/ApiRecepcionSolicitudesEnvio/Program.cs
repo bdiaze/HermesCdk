@@ -17,12 +17,18 @@ builder.Services.AddAWSLambdaHosting(LambdaEventSource.RestApi, new SourceGenera
 
 var app = builder.Build();
 
-string sqsQueueUrl;
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+string parameterArnSqsQueueUrl;
 if (builder.Environment.IsDevelopment()) {
-    sqsQueueUrl = builder.Configuration["SQS:QueueUrl"] ?? throw new Exception("Debes agregar el atributo SQS > QueueUrl en el archivo appsettings.Development.json para ejecutar localmente.");
+    parameterArnSqsQueueUrl = builder.Configuration["VariableEntorno:PARAMETER_ARN_SQS_QUEUE_URL"] ?? throw new Exception("Debes agregar el atributo VariableEntorno > PARAMETER_ARN_SQS_QUEUE_URL en el archivo appsettings.Development.json para ejecutar localmente.");
 } else {
-    sqsQueueUrl = Environment.GetEnvironmentVariable("SQS_QUEUE_URL") ?? throw new Exception("No se ha configurado la variable de entorno SQS_QUEUE_URL.");
+    parameterArnSqsQueueUrl = Environment.GetEnvironmentVariable("PARAMETER_ARN_SQS_QUEUE_URL") ?? throw new Exception("No se ha configurado la variable de entorno PARAMETER_ARN_SQS_QUEUE_URL.");
 }
+
+string sqsQueueUrl = ParameterStoreHelper.ObtenerParametro(parameterArnSqsQueueUrl).Result;
 
 AmazonSQSClient sqsClient = new();
 

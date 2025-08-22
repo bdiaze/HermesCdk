@@ -1,0 +1,69 @@
+name: CDK Deploy on AWS
+
+on:
+    push:
+        branches:
+            - main
+      
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        environment: Production
+        permissions:
+            contents: read
+            id-token: write
+        env:
+            APP_NAME: ${{ vars.APP_NAME }}
+            ACCOUNT_AWS: ${{ vars.ACCOUNT_AWS }}
+            REGION_AWS: ${{ vars.REGION_AWS }}
+            
+            AOT_MINIMAL_API_DIRECTORY: ${{ vars.AOT_MINIMAL_API_DIRECTORY }}
+            AOT_MINIMAL_API_LAMBDA_HANDLER: ${{ vars.AOT_MINIMAL_API_LAMBDA_HANDLER }}
+            AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE: ${{ vars.AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE }}
+            AOT_MINIMAL_API_LAMBDA_TIMEOUT: ${{ vars.AOT_MINIMAL_API_LAMBDA_TIMEOUT }}
+            AOT_MINIMAL_API_MAPPING_DOMAIN_NAME: ${{ vars.AOT_MINIMAL_API_MAPPING_DOMAIN_NAME }}
+            AOT_MINIMAL_API_MAPPING_KEY: ${{ vars.AOT_MINIMAL_API_MAPPING_KEY }}
+                        
+        steps:
+            - name: Checkout Repositorio
+              uses: actions/checkout@v4
+      
+            - name: Instalar .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: ${{ vars.VERSION_DOTNET }}
+      
+            - name: Instalar Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ vars.VERSION_NODEJS }}
+                                                      
+            - name: Instalar AWS CDK
+              run: npm install -g aws-cdk
+                            
+            - name: Publish .NET AoT Minimal API
+              working-directory: ${{ vars.AOT_MINIMAL_API_DIRECTORY }}
+              run: dotnet publish /p:PublishDir=../publish /p:PublishAot=true -r linux-arm64 --no-self-contained
+              
+            - name: Compress Publish Directory .NET AoT Minimal API
+              working-directory: ${{ vars.AOT_MINIMAL_API_DIRECTORY }}/publish
+              run: zip -r -q -T ./publish.zip ./*
+                    
+            - name: Configure AWS Credentials
+              uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4
+              with:
+                  aws-region: ${{ vars.REGION_AWS }}
+                  role-to-assume: ${{ vars.ARN_GITHUB_ROLE }}
+                  
+            - name: CDK Synth
+              working-directory: ${{ vars.DIRECTORIO_CDK }}
+              run: cdk synth
+              
+            - name: CDK Diff
+              working-directory: ${{ vars.DIRECTORIO_CDK }}
+              run: cdk --app cdk.out diff
+              
+            - name: CDK Deploy
+              working-directory: ${{ vars.DIRECTORIO_CDK }}
+              run: cdk --app cdk.out deploy --require-approval never
+          
