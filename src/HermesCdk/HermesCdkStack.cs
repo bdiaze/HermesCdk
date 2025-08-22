@@ -2,6 +2,7 @@ using Amazon.CDK;
 using Amazon.CDK.AWS.APIGateway;
 using Amazon.CDK.AWS.Apigatewayv2;
 using Amazon.CDK.AWS.ApplicationAutoScaling;
+using Amazon.CDK.AWS.CloudWatch;
 using Amazon.CDK.AWS.EC2;
 using Amazon.CDK.AWS.ECS;
 using Amazon.CDK.AWS.IAM;
@@ -306,7 +307,9 @@ namespace HermesCdk {
             });
 
             scalableTaskCount.ScaleOnMetric($"{appName}ScaleOnMetric", new BasicStepScalingPolicyProps {
-                Metric = queue.MetricApproximateNumberOfMessagesVisible(),
+                Metric = queue.MetricApproximateNumberOfMessagesVisible(new MetricOptions {
+                    Period = Duration.Minutes(1),
+                }),
                 ScalingSteps = [ 
                     new ScalingInterval { Upper = 0, Change = 0 },
                     new ScalingInterval { Lower = 1, Change = 1 },
