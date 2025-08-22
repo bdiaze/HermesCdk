@@ -49,6 +49,12 @@ namespace WorkerEnvioCorreos
                     VisibilityTimeout = 10,
                 }, stoppingToken);
 
+                if (mensajes.Messages == null || mensajes.Messages.Count == 0) {
+                    logger.LogInformation("No hay más correos que procesar, se esperará un minuto");
+                    await Task.Delay(60 * 1000, stoppingToken);
+                    continue;
+                }
+
                 logger.LogInformation("Se comienza el envío de {CantMensajes} correos", mensajes.Messages.Count);
 
                 foreach (Amazon.SQS.Model.Message mensaje in mensajes.Messages) {
