@@ -43,7 +43,7 @@ jobs:
                             
             - name: Publish .NET AoT Minimal API
               working-directory: ${{ vars.AOT_MINIMAL_API_DIRECTORY }}
-              run: dotnet publish /p:PublishDir=../publish /p:PublishAot=true -r linux-arm64 --no-self-contained
+              run: dotnet publish /p:PublishDir=../publish /p:PublishAot=true -r linux-arm64 --self-contained
               
             - name: Compress Publish Directory .NET AoT Minimal API
               working-directory: ${{ vars.AOT_MINIMAL_API_DIRECTORY }}/publish
