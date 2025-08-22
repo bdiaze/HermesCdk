@@ -1,8 +1,10 @@
+using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 using ApiRecepcionSolicitudesEnvio.Helpers;
 using ApiRecepcionSolicitudesEnvio.Models;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -32,18 +34,32 @@ AmazonSQSClient sqsClient = new();
 
 var correoApi = app.MapGroup("/Correo");
 correoApi.MapPost("/Enviar", async (Correo correo) => {
+    Stopwatch stopwatch = Stopwatch.StartNew();
 
-    string jsonCorreo = JsonSerializer.Serialize(correo, typeof(Correo), AppJsonSerializerContext.Default);
+    try {
+        string jsonCorreo = JsonSerializer.Serialize(correo, typeof(Correo), AppJsonSerializerContext.Default);
 
-    SendMessageRequest request = new() { 
-        QueueUrl = sqsQueueUrl,
-        MessageBody = jsonCorreo
-    };
+        SendMessageRequest request = new() {
+            QueueUrl = sqsQueueUrl,
+            MessageBody = jsonCorreo
+        };
 
-    SendMessageResponse response = await sqsClient.SendMessageAsync(request);
+        SendMessageResponse response = await sqsClient.SendMessageAsync(request);
+        Retorno salida = new(response.MessageId);
 
+        LambdaLogger.Log(
+            $"[POST] - [/Correo/Enviar] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
+            $"Correo ingresado exitosamente a la cola de envío - QueueMessageId: {salida.QueueMessageId}.");
 
-    return Results.Ok(new Retorno(response.MessageId));
+        return Results.Ok(salida);
+    } catch(Exception ex) {
+        LambdaLogger.Log(
+            $"[POST] - [/Correo/Enviar] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status500InternalServerError}] - " +
+            $"Ocurrió un error al ingresar el correo a la cola de envío. " +
+            $"{ex}");
+
+        return Results.Problem("Ocurrió un error al procesar su solicitud de envío de correo.");
+    }
 });
 
 app.Run();
