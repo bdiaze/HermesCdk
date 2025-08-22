@@ -19,8 +19,6 @@ var app = builder.Build();
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
-
 string parameterArnSqsQueueUrl;
 if (builder.Environment.IsDevelopment()) {
     parameterArnSqsQueueUrl = builder.Configuration["VariableEntorno:PARAMETER_ARN_SQS_QUEUE_URL"] ?? throw new Exception("Debes agregar el atributo VariableEntorno > PARAMETER_ARN_SQS_QUEUE_URL en el archivo appsettings.Development.json para ejecutar localmente.");
