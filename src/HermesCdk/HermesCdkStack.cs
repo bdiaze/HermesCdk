@@ -237,7 +237,7 @@ namespace HermesCdk {
                                     Sid = $"{appName}AccessToSendEmail",
                                     Actions = [
                                         "ses:SendEmail",
-                                        "ses:GetSendQuota"
+                                        "ses:GetAccount"
                                     ],
                                     Resources = [
                                         $"*",
