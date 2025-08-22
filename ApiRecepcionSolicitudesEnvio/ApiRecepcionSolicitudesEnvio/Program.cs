@@ -49,13 +49,13 @@ correoApi.MapPost("/Enviar", async (Correo correo) => {
 
         LambdaLogger.Log(
             $"[POST] - [/Correo/Enviar] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
-            $"Correo ingresado exitosamente a la cola de envío - QueueMessageId: {salida.QueueMessageId}.");
+            $"Correo ingresado exitosamente a la cola de envio - QueueMessageId: {salida.QueueMessageId}.");
 
         return Results.Ok(salida);
     } catch(Exception ex) {
         LambdaLogger.Log(
             $"[POST] - [/Correo/Enviar] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status500InternalServerError}] - " +
-            $"Ocurrió un error al ingresar el correo a la cola de envío. " +
+            $"Ocurrio un error al ingresar el correo a la cola de envio. " +
             $"{ex}");
 
         return Results.Problem("Ocurrió un error al procesar su solicitud de envío de correo.");
