@@ -35,7 +35,7 @@ namespace HermesCdk {
             });
 
             StringParameter stringParameterQueueUrl = new(this, $"{appName}StringParameterQueueUrl", new StringParameterProps {
-                ParameterName = $"{appName}/SQS/QueueUrl",
+                ParameterName = $"/{appName}/SQS/QueueUrl",
                 Description = $"Queue URL de la aplicacion {appName}",
                 StringValue = queue.QueueUrl,
                 Tier = ParameterTier.STANDARD,
