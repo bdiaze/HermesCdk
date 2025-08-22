@@ -199,7 +199,6 @@ namespace HermesCdk {
 
             Cluster cluster = new(this, $"{appName}ECSCluster", new ClusterProps {
                 ClusterName = $"{appName}ECSCluster",
-                ContainerInsightsV2 = ContainerInsights.ENABLED,
                 Vpc = vpc,
             });
 
