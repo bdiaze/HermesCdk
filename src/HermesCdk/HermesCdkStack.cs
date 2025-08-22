@@ -19,6 +19,7 @@ namespace HermesCdk {
         {
             string appName = System.Environment.GetEnvironmentVariable("APP_NAME") ?? throw new ArgumentNullException("APP_NAME");
 
+            string apiDirectory = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_DIRECTORY") ?? throw new ArgumentNullException("AOT_MINIMAL_API_DIRECTORY");
             string handler = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_LAMBDA_HANDLER") ?? throw new ArgumentNullException("AOT_MINIMAL_API_LAMBDA_HANDLER");
             string timeout = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_LAMBDA_TIMEOUT") ?? throw new ArgumentNullException("AOT_MINIMAL_API_LAMBDA_TIMEOUT");
             string memorySize = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE") ?? throw new ArgumentNullException("AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE");
@@ -89,7 +90,7 @@ namespace HermesCdk {
             Function function = new(this, $"{appName}APILambdaFunction", new FunctionProps {
                 Runtime = Runtime.DOTNET_8,
                 Handler = handler,
-                Code = Code.FromAsset("./publish/publish.zip"),
+                Code = Code.FromAsset($"../{apiDirectory}/publish/publish.zip"),
                 FunctionName = $"{appName}APILambdaFunction",
                 Timeout = Duration.Seconds(double.Parse(timeout)),
                 MemorySize = double.Parse(memorySize),
