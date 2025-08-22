@@ -14,7 +14,7 @@ namespace WorkerEnvioCorreos
     {
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            logger.LogInformation("Iniciado worker de envío de correos");
+            logger.LogInformation("Iniciado worker de envio de correos");
 
             // Obteniendo URL de la cola de correos a procesar...
             string queueUrl = await parameterStore.ObtenerParametro(variableEntorno.Obtener("PARAMETER_ARN_SQS_QUEUE_URL"));
@@ -24,7 +24,7 @@ namespace WorkerEnvioCorreos
             // Obteniendo dirección de correos por defecto a usar como remitente...
             DireccionCorreo direccionDeDefecto = JsonSerializer.Deserialize<DireccionCorreo>(await parameterStore.ObtenerParametro(variableEntorno.Obtener("PARAMETER_ARN_DIRECCION_DE_DEFECTO")))!;
 
-            logger.LogInformation("Se obtiene la dirección de correo por defecto a usar como remitente");
+            logger.LogInformation("Se obtiene la direccion de correo por defecto a usar como remitente");
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -37,7 +37,7 @@ namespace WorkerEnvioCorreos
 
                 // Si no quedan correos por enviar, se espera una hora y se vuelve a validar si es posible mandarlos...
                 if (cantEmailsDisponibles == 0) {
-                    logger.LogInformation("Ya se usó la capacidad diaria de SES, se esperará una hora para validar nuevamente");
+                    logger.LogInformation("Ya se uso la capacidad diaria de SES, se esperara una hora para validar nuevamente");
                     await Task.Delay(60 * 60 * 1000, stoppingToken);
                     continue;
                 }
@@ -50,12 +50,12 @@ namespace WorkerEnvioCorreos
                 }, stoppingToken);
 
                 if (mensajes.Messages == null || mensajes.Messages.Count == 0) {
-                    logger.LogInformation("No hay más correos que procesar, se esperará un minuto");
+                    logger.LogInformation("No hay mas correos que procesar, se esperara un minuto");
                     await Task.Delay(60 * 1000, stoppingToken);
                     continue;
                 }
 
-                logger.LogInformation("Se comienza el envío de {CantMensajes} correos", mensajes.Messages.Count);
+                logger.LogInformation("Se comienza el envio de {CantMensajes} correos", mensajes.Messages.Count);
 
                 foreach (Amazon.SQS.Model.Message mensaje in mensajes.Messages) {
                     try {
@@ -118,7 +118,7 @@ namespace WorkerEnvioCorreos
                             await Task.Delay(delayMs, stoppingToken);
                         }
                     } catch(Exception ex) {
-                        logger.LogError(ex, "Ocurrió un error al procesar correo {IdMensaje}", mensaje.MessageId);
+                        logger.LogError(ex, "Ocurrio un error al procesar correo {IdMensaje}", mensaje.MessageId);
                     }
                 }
             }
