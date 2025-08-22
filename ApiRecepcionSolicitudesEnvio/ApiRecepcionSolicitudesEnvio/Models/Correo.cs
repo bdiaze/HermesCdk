@@ -6,6 +6,7 @@
         List<DireccionCorreo>? Cco, 
         List<DireccionCorreo>? ResponderA, 
         string Asunto, 
-        string Cuerpo
+        string Cuerpo,
+        List<Adjunto>? Adjuntos
     );
 }
