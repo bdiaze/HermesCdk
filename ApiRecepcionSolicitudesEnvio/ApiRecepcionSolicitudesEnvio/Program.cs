@@ -43,7 +43,7 @@ correoApi.MapPost("/Enviar", async (Correo correo) => {
     SendMessageResponse response = await sqsClient.SendMessageAsync(request);
 
 
-    return Results.Ok(new { QueueMessageId = response.MessageId });
+    return Results.Ok(new Retorno(response.MessageId));
 });
 
 app.Run();
