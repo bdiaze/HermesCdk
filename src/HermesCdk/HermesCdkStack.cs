@@ -89,7 +89,7 @@ namespace HermesCdk {
             Function function = new(this, $"{appName}APILambdaFunction", new FunctionProps {
                 Runtime = Runtime.DOTNET_8,
                 Handler = handler,
-                Code = Code.FromAsset("../publish/publish.zip"),
+                Code = Code.FromAsset("./publish/publish.zip"),
                 FunctionName = $"{appName}APILambdaFunction",
                 Timeout = Duration.Seconds(double.Parse(timeout)),
                 MemorySize = double.Parse(memorySize),
