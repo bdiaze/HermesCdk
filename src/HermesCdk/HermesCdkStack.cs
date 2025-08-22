@@ -179,7 +179,7 @@ namespace HermesCdk {
             string subnetId2 = System.Environment.GetEnvironmentVariable("SUBNET_ID_2") ?? throw new ArgumentNullException("SUBNET_ID_2");
             double fargateCpu = double.Parse(System.Environment.GetEnvironmentVariable("FARGATE_CPU") ?? throw new ArgumentNullException("FARGATE_CPU"));
             double fargateMemory = double.Parse(System.Environment.GetEnvironmentVariable("FARGATE_MEMORY") ?? throw new ArgumentNullException("FARGATE_MEMORY"));
-            string dockerfilePath = System.Environment.GetEnvironmentVariable("FARGATE_DOCKERFILE_PATH") ?? throw new ArgumentNullException("FARGATE_DOCKERFILE_PATH");
+            string fargateDirectory = System.Environment.GetEnvironmentVariable("FARGATE_DIRECTORY") ?? throw new ArgumentNullException("FARGATE_DIRECTORY");
             string nombreDeDefecto = System.Environment.GetEnvironmentVariable("SES_NOMBRE_DE_DEFECTO") ?? throw new ArgumentNullException("SES_NOMBRE_DE_DEFECTO");
             string correoDeDefecto = System.Environment.GetEnvironmentVariable("SES_CORREO_DE_DEFECTO") ?? throw new ArgumentNullException("SES_CORREO_DE_DEFECTO");
 
@@ -264,9 +264,8 @@ namespace HermesCdk {
 
             taskDefinition.AddContainer($"{appName}TaskContainer", new ContainerDefinitionOptions {
                 ContainerName = $"{appName}TaskContainer",
-                Image = ContainerImage.FromAsset("", new AssetImageProps {
+                Image = ContainerImage.FromAsset(fargateDirectory, new AssetImageProps {
                     AssetName = $"{appName}Image",
-                    File = dockerfilePath,
                 }),
                 Logging = LogDriver.AwsLogs(new AwsLogDriverProps {
                     StreamPrefix = appName,

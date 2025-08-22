@@ -29,7 +29,7 @@ jobs:
             SUBNET_ID_2: ${{ vars.SUBNET_ID_2 }}
             FARGATE_CPU: ${{ vars.FARGATE_CPU }}
             FARGATE_MEMORY: ${{ vars.FARGATE_MEMORY }}
-            FARGATE_DOCKERFILE_PATH: ${{ vars.FARGATE_DOCKERFILE_PATH }}
+            FARGATE_DIRECTORY: ${{ vars.FARGATE_DIRECTORY }}
             SES_NOMBRE_DE_DEFECTO: ${{ vars.SES_NOMBRE_DE_DEFECTO }}
             SES_CORREO_DE_DEFECTO: ${{ vars.SES_CORREO_DE_DEFECTO }}
                         
