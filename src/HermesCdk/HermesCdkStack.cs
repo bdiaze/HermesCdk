@@ -266,6 +266,7 @@ namespace HermesCdk {
                     File = dockerfilePath,
                 }),
                 Logging = LogDriver.AwsLogs(new AwsLogDriverProps {
+                    StreamPrefix = appName,
                     LogGroup = logGroupContainer,
                 }),
                 Environment = new Dictionary<string, string> {
