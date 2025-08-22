@@ -23,6 +23,13 @@ jobs:
             AOT_MINIMAL_API_LAMBDA_TIMEOUT: ${{ vars.AOT_MINIMAL_API_LAMBDA_TIMEOUT }}
             AOT_MINIMAL_API_MAPPING_DOMAIN_NAME: ${{ vars.AOT_MINIMAL_API_MAPPING_DOMAIN_NAME }}
             AOT_MINIMAL_API_MAPPING_KEY: ${{ vars.AOT_MINIMAL_API_MAPPING_KEY }}
+            
+            VPC_ID: ${{ vars.VPC_ID }}
+            FARGATE_CPU: ${{ vars.FARGATE_CPU }}
+            FARGATE_MEMORY: ${{ vars.FARGATE_MEMORY }}
+            FARGATE_DOCKERFILE_PATH: ${{ vars.FARGATE_DOCKERFILE_PATH }}
+            SES_NOMBRE_DE_DEFECTO: ${{ vars.SES_NOMBRE_DE_DEFECTO }}
+            SES_CORREO_DE_DEFECTO: ${{ vars.SES_CORREO_DE_DEFECTO }}
                         
         steps:
             - name: Checkout Repositorio

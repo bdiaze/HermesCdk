@@ -1,13 +1,17 @@
 using Amazon.CDK;
 using Amazon.CDK.AWS.APIGateway;
 using Amazon.CDK.AWS.Apigatewayv2;
+using Amazon.CDK.AWS.ApplicationAutoScaling;
 using Amazon.CDK.AWS.EC2;
+using Amazon.CDK.AWS.ECS;
 using Amazon.CDK.AWS.IAM;
 using Amazon.CDK.AWS.Lambda;
 using Amazon.CDK.AWS.Logs;
+using Amazon.CDK.AWS.S3;
 using Amazon.CDK.AWS.SQS;
 using Amazon.CDK.AWS.SSM;
 using Constructs;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using StageOptions = Amazon.CDK.AWS.APIGateway.StageOptions;
@@ -19,14 +23,7 @@ namespace HermesCdk {
         {
             string appName = System.Environment.GetEnvironmentVariable("APP_NAME") ?? throw new ArgumentNullException("APP_NAME");
 
-            string apiDirectory = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_DIRECTORY") ?? throw new ArgumentNullException("AOT_MINIMAL_API_DIRECTORY");
-            string handler = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_LAMBDA_HANDLER") ?? throw new ArgumentNullException("AOT_MINIMAL_API_LAMBDA_HANDLER");
-            string timeout = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_LAMBDA_TIMEOUT") ?? throw new ArgumentNullException("AOT_MINIMAL_API_LAMBDA_TIMEOUT");
-            string memorySize = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE") ?? throw new ArgumentNullException("AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE");
-            string domainName = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_MAPPING_DOMAIN_NAME") ?? throw new ArgumentNullException("AOT_MINIMAL_API_MAPPING_DOMAIN_NAME");
-            string apiMappingKey = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_MAPPING_KEY") ?? throw new ArgumentNullException("AOT_MINIMAL_API_MAPPING_KEY");
-
-
+            #region SQS
             // Creación de cola...
             Queue queue = new(this, $"{appName}Queue", new QueueProps {
                 QueueName = $"{appName}Queue",
@@ -41,6 +38,16 @@ namespace HermesCdk {
                 StringValue = queue.QueueUrl,
                 Tier = ParameterTier.STANDARD,
             });
+            #endregion
+
+            #region API Gateway y Lambda
+            string apiDirectory = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_DIRECTORY") ?? throw new ArgumentNullException("AOT_MINIMAL_API_DIRECTORY");
+            string handler = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_LAMBDA_HANDLER") ?? throw new ArgumentNullException("AOT_MINIMAL_API_LAMBDA_HANDLER");
+            string timeout = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_LAMBDA_TIMEOUT") ?? throw new ArgumentNullException("AOT_MINIMAL_API_LAMBDA_TIMEOUT");
+            string memorySize = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE") ?? throw new ArgumentNullException("AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE");
+            string domainName = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_MAPPING_DOMAIN_NAME") ?? throw new ArgumentNullException("AOT_MINIMAL_API_MAPPING_DOMAIN_NAME");
+            string apiMappingKey = System.Environment.GetEnvironmentVariable("AOT_MINIMAL_API_MAPPING_KEY") ?? throw new ArgumentNullException("AOT_MINIMAL_API_MAPPING_KEY");
+
 
             // Creación de log group lambda...
             LogGroup logGroup = new(this, $"{appName}APILogGroup", new LogGroupProps { 
@@ -163,6 +170,131 @@ namespace HermesCdk {
                 SourceArn = $"arn:aws:execute-api:{this.Region}:{this.Account}:{lambdaRestApi.RestApiId}/*/*/*",
             };
             function.AddPermission($"{appName}APIPermission", permission);
+            #endregion
+
+            #region ECS y Fargate
+            string vpcId = System.Environment.GetEnvironmentVariable("VPC_ID") ?? throw new ArgumentNullException("VPC_ID");
+            double fargateCpu = double.Parse(System.Environment.GetEnvironmentVariable("FARGATE_CPU") ?? throw new ArgumentNullException("FARGATE_CPU"));
+            double fargateMemory = double.Parse(System.Environment.GetEnvironmentVariable("FARGATE_MEMORY") ?? throw new ArgumentNullException("FARGATE_MEMORY"));
+            string dockerfilePath = System.Environment.GetEnvironmentVariable("FARGATE_DOCKERFILE_PATH") ?? throw new ArgumentNullException("FARGATE_DOCKERFILE_PATH");
+            string nombreDeDefecto = System.Environment.GetEnvironmentVariable("SES_NOMBRE_DE_DEFECTO") ?? throw new ArgumentNullException("SES_NOMBRE_DE_DEFECTO");
+            string correoDeDefecto = System.Environment.GetEnvironmentVariable("SES_CORREO_DE_DEFECTO") ?? throw new ArgumentNullException("SES_CORREO_DE_DEFECTO");
+
+            StringParameter stringParameterDireccionDeDefecto = new(this, $"{appName}StringParameterDireccionDeDefecto", new StringParameterProps {
+                ParameterName = $"/{appName}/SES/DireccionDeDefecto",
+                Description = $"Dirección por defecto para emitir correos de la aplicacion {appName}",
+                StringValue = JsonConvert.SerializeObject(new {
+                    Nombre = nombreDeDefecto,
+                    Correo = correoDeDefecto
+                }),
+                Tier = ParameterTier.STANDARD,
+            });
+
+            IVpc vpc = Vpc.FromLookup(this, $"{appName}Vpc", new VpcLookupOptions {
+                VpcId = vpcId
+            });
+
+            Cluster cluster = new(this, $"{appName}ECSCluster", new ClusterProps {
+                ClusterName = $"{appName}ECSCluster",
+                ContainerInsightsV2 = ContainerInsights.ENABLED,
+                Vpc = vpc,
+            });
+
+            Role taskRole = new(this, $"{appName}ECSTaskRole", new RoleProps {
+                RoleName = $"{appName}ECSTaskRole",
+                Description = $"Role para ECS Task de {appName}",
+                AssumedBy = new ServicePrincipal("ecs-tasks.amazonaws.com"),
+                InlinePolicies = new Dictionary<string, PolicyDocument> {
+                    {
+                        $"{appName}ECSTaskPolicy",
+                        new PolicyDocument(new PolicyDocumentProps {
+                            Statements = [
+                                new PolicyStatement(new PolicyStatementProps{
+                                    Sid = $"{appName}AccessToParameterStore",
+                                    Actions = [
+                                        "ssm:GetParameter"
+                                    ],
+                                    Resources = [
+                                        stringParameterQueueUrl.ParameterArn,
+                                        stringParameterDireccionDeDefecto.ParameterArn,
+
+                                    ],
+                                }),
+                                new PolicyStatement(new PolicyStatementProps{
+                                    Sid = $"{appName}AccessToQueue",
+                                    Actions = [
+                                        "sqs:ReceiveMessage",
+                                        "sqs:DeleteMessage",
+
+                                    ],
+                                    Resources = [
+                                        queue.QueueArn,
+                                    ],
+                                }),
+                                new PolicyStatement(new PolicyStatementProps{
+                                    Sid = $"{appName}AccessToSendEmail",
+                                    Actions = [
+                                        "ses:SendEmail",
+                                        "ses:GetSendQuota"
+                                    ],
+                                    Resources = [
+                                        $"*",
+                                    ],
+                                }),
+                            ]
+                        })
+                    }
+                }
+            });
+
+            FargateTaskDefinition taskDefinition = new(this, $"{appName}FargateTaskDefinition", new FargateTaskDefinitionProps {
+                Cpu = fargateCpu,
+                MemoryLimitMiB = fargateMemory,
+                TaskRole = taskRole,
+            });
+
+            LogGroup logGroupContainer = new(this, $"{appName}ContainerLogGroup", new LogGroupProps {
+                LogGroupName = $"/aws/ecs/{appName}/logs",
+                Retention = RetentionDays.ONE_MONTH,
+                RemovalPolicy = RemovalPolicy.DESTROY
+            });
+
+            taskDefinition.AddContainer($"{appName}TaskContainer", new ContainerDefinitionOptions {
+                ContainerName = $"{appName}TaskContainer",
+                Image = ContainerImage.FromAsset("", new AssetImageProps {
+                    AssetName = $"{appName}Image",
+                    File = dockerfilePath,
+                }),
+                Logging = LogDriver.AwsLogs(new AwsLogDriverProps {
+                    LogGroup = logGroupContainer,
+                }),
+                Environment = new Dictionary<string, string> {
+                    { "PARAMETER_ARN_SQS_QUEUE_URL", stringParameterQueueUrl.ParameterArn },
+                    { "PARAMETER_ARN_DIRECCION_DE_DEFECTO", stringParameterDireccionDeDefecto.ParameterArn }
+                },
+            });
+
+            FargateService fargateService = new(this, $"{appName}FargateService", new FargateServiceProps {
+                Cluster = cluster,
+                TaskDefinition = taskDefinition,
+                DesiredCount = 0,
+            });
+
+            // Se crea capacidad de escalar según cantidad de elementos en la cola, si no hay elementos entonces no se ejecuta el task...
+            ScalableTaskCount scalableTaskCount = fargateService.AutoScaleTaskCount(new EnableScalingProps {
+                MinCapacity = 0,
+                MaxCapacity = 1
+            });
+
+            scalableTaskCount.ScaleOnMetric($"{appName}ScaleOnMetric", new BasicStepScalingPolicyProps {
+                Metric = queue.MetricApproximateNumberOfMessagesVisible(),
+                ScalingSteps = [ 
+                    new ScalingInterval { Upper = 0, Change = 0 },
+                    new ScalingInterval { Lower = 1, Change = 1 },
+                ],
+                AdjustmentType = AdjustmentType.EXACT_CAPACITY,
+            });
+            #endregion
         }
     }
 }
