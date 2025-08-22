@@ -196,9 +196,6 @@ namespace HermesCdk {
                 VpcId = vpcId
             });
 
-            ISubnet subnetPrivateWithInternet1 = Subnet.FromSubnetId(this, $"{appName}Subnet1", subnetId1);
-            ISubnet subnetPrivateWithInternet2 = Subnet.FromSubnetId(this, $"{appName}Subnet2", subnetId2);
-
             Cluster cluster = new(this, $"{appName}ECSCluster", new ClusterProps {
                 ClusterName = $"{appName}ECSCluster",
                 ContainerInsightsV2 = ContainerInsights.ENABLED,
@@ -278,7 +275,17 @@ namespace HermesCdk {
                     { "PARAMETER_ARN_SQS_QUEUE_URL", stringParameterQueueUrl.ParameterArn },
                     { "PARAMETER_ARN_DIRECCION_DE_DEFECTO", stringParameterDireccionDeDefecto.ParameterArn }
                 },
-                
+            });
+
+            // Fargate Service se ejecutarán en red privada con acceso a internet, para poder descargar imagen y acceder a otros servicios públicos...
+            ISubnet subnetPrivateWithInternet1 = Subnet.FromSubnetId(this, $"{appName}Subnet1", subnetId1);
+            ISubnet subnetPrivateWithInternet2 = Subnet.FromSubnetId(this, $"{appName}Subnet2", subnetId2);
+
+            SecurityGroup securityGroup = new(this, $"{appName}FargateServiceSecurityGroup", new SecurityGroupProps {
+                Vpc = vpc,
+                SecurityGroupName = $"{appName}FargateServiceSecurityGroup",
+                Description = $"{appName} Fargate Service Security Group",
+                AllowAllOutbound = true,
             });
 
             FargateService fargateService = new(this, $"{appName}FargateService", new FargateServiceProps {
@@ -289,6 +296,7 @@ namespace HermesCdk {
                 VpcSubnets = new SubnetSelection { 
                     Subnets = [ subnetPrivateWithInternet1, subnetPrivateWithInternet2]
                 },
+                SecurityGroups = [ securityGroup ]
             });
 
             // Se crea capacidad de escalar según cantidad de elementos en la cola, si no hay elementos entonces no se ejecuta el task...
