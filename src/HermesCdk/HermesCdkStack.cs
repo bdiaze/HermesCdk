@@ -88,10 +88,11 @@ namespace HermesCdk {
 
             // Creación de la función lambda...
             Function function = new(this, $"{appName}APILambdaFunction", new FunctionProps {
+                FunctionName = $"{appName}APILambdaFunction",
+                Description = $"API encargada de ingresar los correos a la cola de envio de la aplicacion {appName}",
                 Runtime = Runtime.DOTNET_8,
                 Handler = handler,
                 Code = Code.FromAsset($"{apiDirectory}/publish/publish.zip"),
-                FunctionName = $"{appName}APILambdaFunction",
                 Timeout = Duration.Seconds(double.Parse(timeout)),
                 MemorySize = double.Parse(memorySize),
                 Architecture = Architecture.X86_64,
