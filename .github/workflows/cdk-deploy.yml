@@ -25,6 +25,8 @@ jobs:
             AOT_MINIMAL_API_MAPPING_KEY: ${{ vars.AOT_MINIMAL_API_MAPPING_KEY }}
             
             VPC_ID: ${{ vars.VPC_ID }}
+            SUBNET_ID_1: ${{ vars.SUBNET_ID_1 }}
+            SUBNET_ID_2: ${{ vars.SUBNET_ID_2 }}
             FARGATE_CPU: ${{ vars.FARGATE_CPU }}
             FARGATE_MEMORY: ${{ vars.FARGATE_MEMORY }}
             FARGATE_DOCKERFILE_PATH: ${{ vars.FARGATE_DOCKERFILE_PATH }}

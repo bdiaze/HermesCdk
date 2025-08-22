@@ -174,6 +174,8 @@ namespace HermesCdk {
 
             #region ECS y Fargate
             string vpcId = System.Environment.GetEnvironmentVariable("VPC_ID") ?? throw new ArgumentNullException("VPC_ID");
+            string subnetId1 = System.Environment.GetEnvironmentVariable("SUBNET_ID_1") ?? throw new ArgumentNullException("SUBNET_ID_1");
+            string subnetId2 = System.Environment.GetEnvironmentVariable("SUBNET_ID_2") ?? throw new ArgumentNullException("SUBNET_ID_2");
             double fargateCpu = double.Parse(System.Environment.GetEnvironmentVariable("FARGATE_CPU") ?? throw new ArgumentNullException("FARGATE_CPU"));
             double fargateMemory = double.Parse(System.Environment.GetEnvironmentVariable("FARGATE_MEMORY") ?? throw new ArgumentNullException("FARGATE_MEMORY"));
             string dockerfilePath = System.Environment.GetEnvironmentVariable("FARGATE_DOCKERFILE_PATH") ?? throw new ArgumentNullException("FARGATE_DOCKERFILE_PATH");
@@ -193,6 +195,9 @@ namespace HermesCdk {
             IVpc vpc = Vpc.FromLookup(this, $"{appName}Vpc", new VpcLookupOptions {
                 VpcId = vpcId
             });
+
+            ISubnet subnetPrivateWithInternet1 = Subnet.FromSubnetId(this, $"{appName}Subnet1", subnetId1);
+            ISubnet subnetPrivateWithInternet2 = Subnet.FromSubnetId(this, $"{appName}Subnet2", subnetId2);
 
             Cluster cluster = new(this, $"{appName}ECSCluster", new ClusterProps {
                 ClusterName = $"{appName}ECSCluster",
@@ -273,12 +278,17 @@ namespace HermesCdk {
                     { "PARAMETER_ARN_SQS_QUEUE_URL", stringParameterQueueUrl.ParameterArn },
                     { "PARAMETER_ARN_DIRECCION_DE_DEFECTO", stringParameterDireccionDeDefecto.ParameterArn }
                 },
+                
             });
 
             FargateService fargateService = new(this, $"{appName}FargateService", new FargateServiceProps {
+                ServiceName = $"{appName}FargateService",
                 Cluster = cluster,
                 TaskDefinition = taskDefinition,
                 DesiredCount = 0,
+                VpcSubnets = new SubnetSelection { 
+                    Subnets = [ subnetPrivateWithInternet1, subnetPrivateWithInternet2]
+                },
             });
 
             // Se crea capacidad de escalar según cantidad de elementos en la cola, si no hay elementos entonces no se ejecuta el task...
