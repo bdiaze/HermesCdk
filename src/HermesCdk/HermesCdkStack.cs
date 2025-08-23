@@ -18,6 +18,7 @@ using Constructs;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using StageOptions = Amazon.CDK.AWS.APIGateway.StageOptions;
 
 namespace HermesCdk {
@@ -78,6 +79,10 @@ namespace HermesCdk {
                 Scopes = [ scopeEnviarCorreo ]
             });
 
+            List<OAuthScope> scopes = [
+                OAuthScope.ResourceServer(resourceServer, scopeEnviarCorreo)
+            ];
+
             // Se crea el user pool client...
             UserPoolClient userPoolClient = new(this, $"{appName}UserPoolClient", new UserPoolClientProps {
                 UserPoolClientName = $"{appName}PersonalUserPoolClient",
@@ -90,9 +95,7 @@ namespace HermesCdk {
                     Flows = new OAuthFlows {
                         ClientCredentials = true,
                     },
-                    Scopes = [
-                        OAuthScope.ResourceServer(resourceServer, scopeEnviarCorreo),
-                    ],
+                    Scopes = [.. scopes],
                 },
             });
 
@@ -230,7 +233,8 @@ namespace HermesCdk {
                 },
                 DefaultMethodOptions = new MethodOptions {
                     AuthorizationType = AuthorizationType.COGNITO,
-                    Authorizer = cognitoUserPoolsAuthorizer
+                    Authorizer = cognitoUserPoolsAuthorizer,
+                    AuthorizationScopes = [.. scopes.Select(s => s.ScopeName)],                    
                 },
             });
 
