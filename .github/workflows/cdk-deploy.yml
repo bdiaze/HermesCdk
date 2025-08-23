@@ -54,7 +54,7 @@ jobs:
                             
             - name: Publish .NET AoT Minimal API
               run: |
-                  docker run --rm -v ${{ github.workspace }}:/${{ vars.AOT_MINIMAL_API_DIRECTORY }} -w /${{ vars.AOT_MINIMAL_API_DIRECTORY }} public.ecr.aws/amazonlinux/amazonlinux:2023 \
+                  docker run --rm -v ${{ github.workspace }}/${{ vars.AOT_MINIMAL_API_DIRECTORY }}:/src -w /src public.ecr.aws/amazonlinux/amazonlinux:2023 \
                   bash -c "yum install -y dotnet-sdk-8.0 && dotnet publish /p:PublishDir=../publish /p:PublishAot=true -r linux-x64 --self-contained"
               
             - name: Compress Publish Directory .NET AoT Minimal API
