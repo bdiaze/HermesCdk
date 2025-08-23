@@ -17,6 +17,8 @@ jobs:
             ACCOUNT_AWS: ${{ vars.ACCOUNT_AWS }}
             REGION_AWS: ${{ vars.REGION_AWS }}
             
+            COGNITO_DOMAIN: ${{ vars.COGNITO_DOMAIN }}
+            
             AOT_MINIMAL_API_DIRECTORY: ${{ vars.AOT_MINIMAL_API_DIRECTORY }}
             AOT_MINIMAL_API_LAMBDA_HANDLER: ${{ vars.AOT_MINIMAL_API_LAMBDA_HANDLER }}
             AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE: ${{ vars.AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE }}

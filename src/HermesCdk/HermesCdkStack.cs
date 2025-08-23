@@ -3,6 +3,7 @@ using Amazon.CDK.AWS.APIGateway;
 using Amazon.CDK.AWS.Apigatewayv2;
 using Amazon.CDK.AWS.ApplicationAutoScaling;
 using Amazon.CDK.AWS.Batch;
+using Amazon.CDK.AWS.CertificateManager;
 using Amazon.CDK.AWS.CloudWatch;
 using Amazon.CDK.AWS.Cognito;
 using Amazon.CDK.AWS.EC2;
@@ -45,6 +46,8 @@ namespace HermesCdk {
             #endregion
 
             #region Cognito
+            string cognitoDomain = System.Environment.GetEnvironmentVariable("COGNITO_DOMAIN") ?? throw new ArgumentNullException("COGNITO_DOMAIN");
+
             // Se crea el user pool...
             UserPool userPool = new(this, $"{appName}UserPool", new UserPoolProps {
                 UserPoolName = $"{appName}UserPool",
@@ -53,15 +56,23 @@ namespace HermesCdk {
                 RemovalPolicy = RemovalPolicy.DESTROY,
             });
 
+            UserPoolDomain domain = new(this, $"{appName}CognitoDomain", new UserPoolDomainProps {
+                UserPool = userPool,
+                CognitoDomain = new CognitoDomainOptions {
+                    DomainPrefix = cognitoDomain,
+                },
+                ManagedLoginVersion = ManagedLoginVersion.NEWER_MANAGED_LOGIN,
+            });
+
             // Se crean los scopes que permitirán acciones en la API...
             ResourceServerScope scopeEnviarCorreo = new(new ResourceServerScopeProps {
                 ScopeName = "enviar_correo",
-                ScopeDescription = "Permite ingresar solicitudes de envío de correo",
+                ScopeDescription = "Permite ingresar solicitudes de envio de correo",
             });
 
             // Se crean resource server para los scopes...
             UserPoolResourceServer resourceServer = new(this, $"{appName}ResourceServer", new UserPoolResourceServerProps {
-                UserPoolResourceServerName = $"{appName}ResourceServer",
+                UserPoolResourceServerName = $"{appName}APIEnvioCorreo",
                 Identifier = "api",
                 UserPool = userPool,
                 Scopes = [ scopeEnviarCorreo ]
