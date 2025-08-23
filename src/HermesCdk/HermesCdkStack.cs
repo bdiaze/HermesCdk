@@ -117,6 +117,13 @@ namespace HermesCdk {
                 StringValue = region,
                 Tier = ParameterTier.STANDARD,
             });
+
+            StringParameter stringParameterCognitoBaseUrl = new(this, $"{appName}StringParameterCognitoBaseUrl", new StringParameterProps {
+                ParameterName = $"/{appName}/Cognito/BaseUrl",
+                Description = $"Cognito Base URL de la aplicacion {appName}",
+                StringValue = domain.BaseUrl(),
+                Tier = ParameterTier.STANDARD,
+            });
             #endregion
 
             #region API Gateway y Lambda
@@ -158,6 +165,7 @@ namespace HermesCdk {
                                         stringParameterUserPoolId.ParameterArn,
                                         stringParameterUserPoolClientId.ParameterArn,
                                         stringParameterRegion.ParameterArn,
+                                        stringParameterCognitoBaseUrl.ParameterArn
                                     ],
                                 }),
                                 new PolicyStatement(new PolicyStatementProps{
@@ -192,6 +200,7 @@ namespace HermesCdk {
                     { "PARAMETER_ARN_COGNITO_USER_POOL_ID", stringParameterUserPoolId.ParameterArn },
                     { "PARAMETER_ARN_COGNITO_USER_POOL_CLIENT_ID", stringParameterUserPoolClientId.ParameterArn },
                     { "PARAMETER_ARN_COGNITO_REGION", stringParameterRegion.ParameterArn },
+                    { "PARAMETER_ARN_COGNITO_BASE_URL", stringParameterCognitoBaseUrl.ParameterArn },
                 },
                 Role = roleLambda,
             });
