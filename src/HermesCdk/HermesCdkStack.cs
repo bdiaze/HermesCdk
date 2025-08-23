@@ -58,7 +58,15 @@ namespace HermesCdk {
                 UserPoolClientName = $"{appName}PersonalUserPoolClient",
                 UserPool = userPool,
                 GenerateSecret = true,
-                AuthFlows = new AuthFlow(),
+                AuthFlows = new AuthFlow { 
+                    UserSrp = false,
+                },
+                OAuth = new OAuthSettings { 
+                    Flows = new OAuthFlows {
+                        ClientCredentials = true,
+                    },
+                    Scopes = [],
+                }
             });
 
             // Se crean parametros para poder ser rescatados desde la API...
