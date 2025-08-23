@@ -57,7 +57,8 @@ jobs:
                   docker run --rm -v ${{ github.workspace }}/${{ vars.AOT_MINIMAL_API_DIRECTORY }}:/src -w /src public.ecr.aws/amazonlinux/amazonlinux:2023 \bash -c "
                     yum install -y dotnet-sdk-8.0 gcc zlib-devel && 
                     dotnet publish /p:PublishDir=../publish /p:PublishAot=true -r linux-x64 --self-contained &&
-                    zip -r -T ./publish/publish.zip ./publish/*"
+                    cd ./publish &&
+                    zip -r -T ./publish.zip ./*"
               
                     
             - name: Configure AWS Credentials
