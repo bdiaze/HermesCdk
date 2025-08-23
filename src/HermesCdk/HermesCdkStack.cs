@@ -53,20 +53,36 @@ namespace HermesCdk {
                 RemovalPolicy = RemovalPolicy.DESTROY,
             });
 
+            // Se crean los scopes que permitirán acciones en la API...
+            ResourceServerScope scopeEnviarCorreo = new(new ResourceServerScopeProps {
+                ScopeName = "enviar_correo",
+                ScopeDescription = "Permite ingresar solicitudes de envío de correo",
+            });
+
+            // Se crean resource server para los scopes...
+            UserPoolResourceServer resourceServer = new(this, $"{appName}ResourceServer", new UserPoolResourceServerProps {
+                UserPoolResourceServerName = $"{appName}ResourceServer",
+                Identifier = "api",
+                UserPool = userPool,
+                Scopes = [ scopeEnviarCorreo ]
+            });
+
             // Se crea el user pool client...
             UserPoolClient userPoolClient = new(this, $"{appName}UserPoolClient", new UserPoolClientProps {
                 UserPoolClientName = $"{appName}PersonalUserPoolClient",
                 UserPool = userPool,
                 GenerateSecret = true,
                 AuthFlows = new AuthFlow { 
-                    UserSrp = false,
+                    UserSrp = true 
                 },
-                OAuth = new OAuthSettings { 
+                OAuth = new OAuthSettings {
                     Flows = new OAuthFlows {
                         ClientCredentials = true,
                     },
-                    Scopes = [],
-                }
+                    Scopes = [
+                        OAuthScope.ResourceServer(resourceServer, scopeEnviarCorreo),
+                    ],
+                },
             });
 
             // Se crean parametros para poder ser rescatados desde la API...
