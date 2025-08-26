@@ -12,6 +12,7 @@ using Amazon.CDK.AWS.IAM;
 using Amazon.CDK.AWS.Lambda;
 using Amazon.CDK.AWS.Logs;
 using Amazon.CDK.AWS.S3;
+using Amazon.CDK.AWS.SecretsManager;
 using Amazon.CDK.AWS.SQS;
 using Amazon.CDK.AWS.SSM;
 using Constructs;
@@ -19,6 +20,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Secret = Amazon.CDK.AWS.SecretsManager.Secret;
 using StageOptions = Amazon.CDK.AWS.APIGateway.StageOptions;
 using ThrottleSettings = Amazon.CDK.AWS.APIGateway.ThrottleSettings;
 
@@ -257,7 +259,7 @@ namespace HermesCdk {
             });
 
             // Creación de la CfnApiMapping para el API Gateway...
-            _ = new CfnApiMapping(this, $"{appName}APIApiMapping", new CfnApiMappingProps {
+            CfnApiMapping apiMapping = new CfnApiMapping(this, $"{appName}APIApiMapping", new CfnApiMappingProps {
                 DomainName = domainName,
                 ApiMappingKey = apiMappingKey,
                 ApiId = lambdaRestApi.RestApiId,
@@ -292,6 +294,21 @@ namespace HermesCdk {
                 SourceArn = $"arn:aws:execute-api:{this.Region}:{this.Account}:{lambdaRestApi.RestApiId}/*/*/*",
             };
             function.AddPermission($"{appName}APIPermission", permission);
+
+            // Se configuran parámetros para ser rescatados por consumidores...
+            _ = new StringParameter(this, $"{appName}StringParameterApiUrl", new StringParameterProps {
+                ParameterName = $"/{appName}/Api/Url",
+                Description = $"API URL de la aplicacion {appName}",
+                StringValue = $"https://{apiMapping.DomainName}/{apiMapping.ApiMappingKey}/",
+                Tier = ParameterTier.STANDARD,
+            });
+
+            _ = new StringParameter(this, $"{appName}StringParameterApiKeyId", new StringParameterProps {
+                ParameterName = $"/{appName}/Api/KeyId",
+                Description = $"API Key ID de la aplicacion {appName}",
+                StringValue = $"{apiGatewayKey.KeyId}",
+                Tier = ParameterTier.STANDARD,
+            });
             #endregion
 
             #region ECS y Fargate
