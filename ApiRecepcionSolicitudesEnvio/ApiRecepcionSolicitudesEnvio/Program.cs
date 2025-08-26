@@ -24,11 +24,12 @@ builder.Services.AddSingleton<IAmazonSQS, AmazonSQSClient>();
 builder.Services.AddSingleton<VariableEntorno, VariableEntorno>();
 
 VariableEntorno variableEntorno = new(builder.Environment, builder.Configuration);
-string cognitoBaseUrl = ParameterStoreHelper.ObtenerParametro(variableEntorno.Obtener("PARAMETER_ARN_COGNITO_BASE_URL")).Result;
-string cognitoUserPoolId = ParameterStoreHelper.ObtenerParametro(variableEntorno.Obtener("PARAMETER_ARN_COGNITO_USER_POOL_ID")).Result;
-string cognitoUserPoolClientId = ParameterStoreHelper.ObtenerParametro(variableEntorno.Obtener("PARAMETER_ARN_COGNITO_USER_POOL_CLIENT_ID")).Result;
-string cognitoRegion = ParameterStoreHelper.ObtenerParametro(variableEntorno.Obtener("PARAMETER_ARN_COGNITO_REGION")).Result;
+// string cognitoBaseUrl = ParameterStoreHelper.ObtenerParametro(variableEntorno.Obtener("PARAMETER_ARN_COGNITO_BASE_URL")).Result;
+// string cognitoUserPoolId = ParameterStoreHelper.ObtenerParametro(variableEntorno.Obtener("PARAMETER_ARN_COGNITO_USER_POOL_ID")).Result;
+// string cognitoUserPoolClientId = ParameterStoreHelper.ObtenerParametro(variableEntorno.Obtener("PARAMETER_ARN_COGNITO_USER_POOL_CLIENT_ID")).Result;
+// string cognitoRegion = ParameterStoreHelper.ObtenerParametro(variableEntorno.Obtener("PARAMETER_ARN_COGNITO_REGION")).Result;
 
+/*
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options => {
         options.Authority = cognitoBaseUrl;
@@ -42,15 +43,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             NameClaimType = ClaimTypes.NameIdentifier,
         };
     });
+*/
+
+/*
 builder.Services.AddAuthorization(options => {
     options.AddPolicy("RequiereScopeEnviarCorreo", policy => policy.RequireClaim("scope", "api/enviar_correo"));
 });
+*/
 
 
 var app = builder.Build();
 
-app.UseAuthentication();
-app.UseAuthorization();
+// app.UseAuthentication();
+// app.UseAuthorization();
 
 app.UseHttpsRedirection();
 
@@ -85,6 +90,6 @@ correoApi.MapPost("/Enviar", async (Correo correo, IAmazonSQS sqsClient, IConfig
 
         return Results.Problem("Ocurrió un error al procesar su solicitud de envío de correo.");
     }
-}).RequireAuthorization("RequiereScopeEnviarCorreo");
+})/*.RequireAuthorization("RequiereScopeEnviarCorreo")*/;
 
 app.Run();

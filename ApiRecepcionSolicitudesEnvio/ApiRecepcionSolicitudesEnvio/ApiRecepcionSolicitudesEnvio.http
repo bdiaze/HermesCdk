@@ -1,11 +1,20 @@
 @ApiRecepcionSolicitudesEnvio_HostAddress = http://localhost:5039
 
-GET {{ApiRecepcionSolicitudesEnvio_HostAddress}}/todos/
-Accept: application/json
-
+POST {{ApiRecepcionSolicitudesEnvio_HostAddress}}/Correo/Enviar
+Content-Type: application/json
+{
+    "de": {
+        "nombre": "¿Qué tal mi AFP?",
+        "correo": "no-responder@quetalmiafp.cl"
+    },
+    "para": [
+        {
+            "nombre": "Contacto - ¿Qué tal mi AFP?",
+            "correo": "contacto@quetalmiafp.cl"
+        }
+    ],
+    "asunto": "Prueba 01 archivo .http",
+    "cuerpo": "Cuerpo prueba 01 archivo .http"
+}
 ###
 
-GET {{ApiRecepcionSolicitudesEnvio_HostAddress}}/todos/1
-Accept: application/json
-
-###

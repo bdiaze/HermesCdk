@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using StageOptions = Amazon.CDK.AWS.APIGateway.StageOptions;
+using ThrottleSettings = Amazon.CDK.AWS.APIGateway.ThrottleSettings;
 
 namespace HermesCdk {
     public class HermesCdkStack : Stack
@@ -46,17 +47,20 @@ namespace HermesCdk {
             });
             #endregion
 
-            #region Cognito
-            string cognitoDomain = System.Environment.GetEnvironmentVariable("COGNITO_DOMAIN") ?? throw new ArgumentNullException("COGNITO_DOMAIN");
+            #region Cognito - Se decide no usar dado que AWS cobra $6 por mes de clientes M2M (Se vuelve a API Keys de API Gateway)...
+            // string cognitoDomain = System.Environment.GetEnvironmentVariable("COGNITO_DOMAIN") ?? throw new ArgumentNullException("COGNITO_DOMAIN");
 
             // Se crea el user pool...
+            /*
             UserPool userPool = new(this, $"{appName}UserPool", new UserPoolProps {
                 UserPoolName = $"{appName}UserPool",
                 SelfSignUpEnabled = false,
                 DeletionProtection = true,
                 RemovalPolicy = RemovalPolicy.DESTROY,
             });
+            */
 
+            /*
             UserPoolDomain domain = new(this, $"{appName}CognitoDomain", new UserPoolDomainProps {
                 UserPool = userPool,
                 CognitoDomain = new CognitoDomainOptions {
@@ -64,26 +68,34 @@ namespace HermesCdk {
                 },
                 ManagedLoginVersion = ManagedLoginVersion.NEWER_MANAGED_LOGIN,
             });
+            */
 
             // Se crean los scopes que permitirán acciones en la API...
+            /*
             ResourceServerScope scopeEnviarCorreo = new(new ResourceServerScopeProps {
                 ScopeName = "enviar_correo",
                 ScopeDescription = "Permite ingresar solicitudes de envio de correo",
             });
+            */
 
             // Se crean resource server para los scopes...
+            /*
             UserPoolResourceServer resourceServer = new(this, $"{appName}ResourceServer", new UserPoolResourceServerProps {
                 UserPoolResourceServerName = $"{appName}APIEnvioCorreo",
                 Identifier = "api",
                 UserPool = userPool,
                 Scopes = [ scopeEnviarCorreo ]
             });
+            */
 
+            /*
             List<OAuthScope> scopes = [
                 OAuthScope.ResourceServer(resourceServer, scopeEnviarCorreo)
             ];
+            */
 
             // Se crea el user pool client...
+            /*
             UserPoolClient userPoolClient = new(this, $"{appName}UserPoolClient", new UserPoolClientProps {
                 UserPoolClientName = $"{appName}PersonalUserPoolClient",
                 UserPool = userPool,
@@ -98,8 +110,10 @@ namespace HermesCdk {
                     Scopes = [.. scopes],
                 },
             });
+            */
 
             // Se crean parametros para poder ser rescatados desde la API...
+            /*
             StringParameter stringParameterUserPoolId = new(this, $"{appName}StringParameterUserPoolId", new StringParameterProps {
                 ParameterName = $"/{appName}/Cognito/UserPoolId",
                 Description = $"User Pool ID de la aplicacion {appName}",
@@ -127,6 +141,7 @@ namespace HermesCdk {
                 StringValue = domain.BaseUrl(),
                 Tier = ParameterTier.STANDARD,
             });
+            */
             #endregion
 
             #region API Gateway y Lambda
@@ -165,10 +180,10 @@ namespace HermesCdk {
                                     ],
                                     Resources = [
                                         stringParameterQueueUrl.ParameterArn,
-                                        stringParameterUserPoolId.ParameterArn,
-                                        stringParameterUserPoolClientId.ParameterArn,
-                                        stringParameterRegion.ParameterArn,
-                                        stringParameterCognitoBaseUrl.ParameterArn
+                                        // stringParameterUserPoolId.ParameterArn,
+                                        // stringParameterUserPoolClientId.ParameterArn,
+                                        // stringParameterRegion.ParameterArn,
+                                        // stringParameterCognitoBaseUrl.ParameterArn
                                     ],
                                 }),
                                 new PolicyStatement(new PolicyStatementProps{
@@ -200,10 +215,10 @@ namespace HermesCdk {
                 Environment = new Dictionary<string, string> {
                     { "APP_NAME", appName },
                     { "PARAMETER_ARN_SQS_QUEUE_URL", stringParameterQueueUrl.ParameterArn },
-                    { "PARAMETER_ARN_COGNITO_USER_POOL_ID", stringParameterUserPoolId.ParameterArn },
-                    { "PARAMETER_ARN_COGNITO_USER_POOL_CLIENT_ID", stringParameterUserPoolClientId.ParameterArn },
-                    { "PARAMETER_ARN_COGNITO_REGION", stringParameterRegion.ParameterArn },
-                    { "PARAMETER_ARN_COGNITO_BASE_URL", stringParameterCognitoBaseUrl.ParameterArn },
+                    // { "PARAMETER_ARN_COGNITO_USER_POOL_ID", stringParameterUserPoolId.ParameterArn },
+                    // { "PARAMETER_ARN_COGNITO_USER_POOL_CLIENT_ID", stringParameterUserPoolClientId.ParameterArn },
+                    // { "PARAMETER_ARN_COGNITO_REGION", stringParameterRegion.ParameterArn },
+                    // { "PARAMETER_ARN_COGNITO_BASE_URL", stringParameterCognitoBaseUrl.ParameterArn },
                 },
                 Role = roleLambda,
             });
@@ -216,10 +231,12 @@ namespace HermesCdk {
             });
 
             // Creación autorizer para el user pool creado...
+            /*
             CognitoUserPoolsAuthorizer cognitoUserPoolsAuthorizer = new(this, $"{appName}APIAuthorizer", new CognitoUserPoolsAuthorizerProps {
                 CognitoUserPools = [userPool],
                 AuthorizerName = $"{appName}APIAuthorizer",
             });
+            */
 
             // Creación de la LambdaRestApi...
             LambdaRestApi lambdaRestApi = new(this, $"{appName}APILambdaRestApi", new LambdaRestApiProps {
@@ -232,9 +249,10 @@ namespace HermesCdk {
                     Description = $"Stage para produccion de la aplicacion {appName}",
                 },
                 DefaultMethodOptions = new MethodOptions {
-                    AuthorizationType = AuthorizationType.COGNITO,
-                    Authorizer = cognitoUserPoolsAuthorizer,
-                    AuthorizationScopes = [.. scopes.Select(s => s.ScopeName)],                    
+                    ApiKeyRequired = true,
+                    // AuthorizationType = AuthorizationType.COGNITO,
+                    // Authorizer = cognitoUserPoolsAuthorizer,
+                    // AuthorizationScopes = [.. scopes.Select(s => s.ScopeName)],                    
                 },
             });
 
@@ -245,6 +263,25 @@ namespace HermesCdk {
                 ApiId = lambdaRestApi.RestApiId,
                 Stage = lambdaRestApi.DeploymentStage.StageName,
             });
+
+            // Se crea Usage Plan para configurar API Key...
+            UsagePlan usagePlan = new(this, $"{appName}APIUsagePlan", new UsagePlanProps {
+                Name = $"{appName}APIUsagePlan",
+                Description = $"Usage Plan de {appName} API",
+                ApiStages = [
+                    new UsagePlanPerApiStage() {
+                        Api = lambdaRestApi,
+                        Stage = lambdaRestApi.DeploymentStage
+                    }
+                ],
+            });
+
+            // Se crea API Key...
+            ApiKey apiGatewayKey = new(this, $"{appName}APIAPIKey", new ApiKeyProps {
+                ApiKeyName = $"{appName}APIAPIKey",
+                Description = $"API Key de {appName} API",
+            });
+            usagePlan.AddApiKey(apiGatewayKey);
 
             // Se configura permisos para la ejecucíon de la Lambda desde el API Gateway...
             ArnPrincipal arnPrincipal = new("apigateway.amazonaws.com");
