@@ -338,6 +338,7 @@ namespace HermesCdk {
             Cluster cluster = new(this, $"{appName}ECSCluster", new ClusterProps {
                 ClusterName = $"{appName}ECSCluster",
                 Vpc = vpc,
+                ContainerInsightsV2 = ContainerInsights.DISABLED,
             });
 
             Role taskRole = new(this, $"{appName}ECSTaskRole", new RoleProps {
