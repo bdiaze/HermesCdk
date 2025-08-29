@@ -445,8 +445,10 @@ namespace HermesCdk {
 
             scalableTaskCount.ScaleOnMetric($"{appName}ScaleOnMetric", new BasicStepScalingPolicyProps {
                 Metric = queue.MetricApproximateNumberOfMessagesVisible(new MetricOptions {
-                    Period = Duration.Seconds(10),
+                    Period = Duration.Seconds(60),
                 }),
+                DatapointsToAlarm = 1,
+                EvaluationPeriods = 1,
                 ScalingSteps = [ 
                     new ScalingInterval { Upper = 0, Change = 0 },
                     new ScalingInterval { Lower = 1, Change = 1 },
