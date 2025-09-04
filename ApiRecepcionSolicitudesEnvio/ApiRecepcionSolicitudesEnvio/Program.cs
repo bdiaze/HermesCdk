@@ -62,14 +62,14 @@ app.UseHttpsRedirection();
 builder.Configuration["SQS_QUEUE_URL"] = ParameterStoreHelper.ObtenerParametro(variableEntorno.Obtener("PARAMETER_ARN_SQS_QUEUE_URL")).Result;
 
 var correoApi = app.MapGroup("/Correo");
-correoApi.MapPost("/Enviar", async (Correo correo, IAmazonSQS sqsClient, IConfiguration config, ClaimsPrincipal user) => {
+correoApi.MapPost("/Enviar", async (Correo correo, IAmazonSQS sqsClient, IConfiguration config/*, ClaimsPrincipal user*/) => {
     Stopwatch stopwatch = Stopwatch.StartNew();
 
     try {
         string jsonCorreo = JsonSerializer.Serialize(correo, typeof(Correo), AppJsonSerializerContext.Default);
 
         SendMessageRequest request = new() {
-            MessageGroupId = user.Identity!.Name,
+            // MessageGroupId = user.Identity!.Name,
             QueueUrl = config["SQS_QUEUE_URL"],
             MessageBody = jsonCorreo
         };
