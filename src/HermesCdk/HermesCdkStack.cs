@@ -291,7 +291,7 @@ namespace HermesCdk {
             workerFunction.AddEventSource(new SqsEventSource(queue, new SqsEventSourceProps {
                 Enabled = true,
                 BatchSize = 5000,
-                MaxBatchingWindow = Duration.Seconds(30)
+                MaxBatchingWindow = Duration.Seconds(10)
             }));
             #endregion
         }
