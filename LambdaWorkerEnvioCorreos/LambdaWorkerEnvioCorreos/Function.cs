@@ -47,6 +47,7 @@ public class Function
     public async Task FunctionHandler(SQSEvent evnt, ILambdaContext context)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
+        Stopwatch stopwatchDelay = Stopwatch.StartNew();
 
         LambdaLogger.Log(
             $"[Function] - [FunctionHandler] - " +
@@ -92,8 +93,6 @@ public class Function
 
         foreach (SQSMessage mensaje in evnt.Records) {
             try {
-                Stopwatch stopwatchDelay = Stopwatch.StartNew();
-
                 Correo correo = JsonSerializer.Deserialize<Correo>(mensaje.Body)!;
                 correo.De ??= direccionDeDefecto;
 
@@ -134,21 +133,22 @@ public class Function
                     }
                 };
 
-                SendEmailResponse response = await sesClient.SendEmailAsync(request);
-                if (response.HttpStatusCode != HttpStatusCode.OK) {
-                    throw new Exception($"Error al enviar correo [SendEmailResponse - Message ID: {response.MessageId} - HttpStatusCode: {response.HttpStatusCode}]");
-                }
-
-                DeleteMessageResponse deleteResponse = await sqsClient.DeleteMessageAsync(queueUrl, mensaje.ReceiptHandle);
-                if (deleteResponse.HttpStatusCode != HttpStatusCode.OK) {
-                    throw new Exception($"Error al quitar mensaje de la cola [DeleteMessageResponse - Message ID: {mensaje.MessageId} - HttpStatusCode: {deleteResponse.HttpStatusCode}]");
-                }
-
                 if (stopwatchDelay.ElapsedMilliseconds < maxDelayMs) {
                     int delayMs = maxDelayMs - (int)stopwatchDelay.ElapsedMilliseconds;
                     await Task.Delay(delayMs);
                 }
 
+                SendEmailResponse response = await sesClient.SendEmailAsync(request);
+                if (response.HttpStatusCode != HttpStatusCode.OK) {
+                    throw new Exception($"Error al enviar correo [SendEmailResponse - Message ID: {response.MessageId} - HttpStatusCode: {response.HttpStatusCode}]");
+                }
+
+                stopwatchDelay = Stopwatch.StartNew();
+
+                DeleteMessageResponse deleteResponse = await sqsClient.DeleteMessageAsync(queueUrl, mensaje.ReceiptHandle);
+                if (deleteResponse.HttpStatusCode != HttpStatusCode.OK) {
+                    throw new Exception($"Error al quitar mensaje de la cola [DeleteMessageResponse - Message ID: {mensaje.MessageId} - HttpStatusCode: {deleteResponse.HttpStatusCode}]");
+                }
             } catch (Exception ex) {
                 LambdaLogger.Log(LogLevel.Error,
                     $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
