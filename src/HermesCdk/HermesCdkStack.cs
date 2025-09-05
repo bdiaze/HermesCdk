@@ -64,7 +64,7 @@ namespace HermesCdk {
             Queue queue = new(this, $"{appName}Queue", new QueueProps {
                 QueueName = $"{appName}Queue",
                 RetentionPeriod = Duration.Days(14),
-                VisibilityTimeout = Duration.Minutes(double.Parse(workerLambdaTimeout)),
+                VisibilityTimeout = Duration.Seconds(Math.Round(double.Parse(workerLambdaTimeout) * 1.5)),
                 EnforceSSL = true,
                 DeadLetterQueue = new DeadLetterQueue {
                     Queue = dlq,
@@ -329,7 +329,7 @@ namespace HermesCdk {
 
             workerFunction.AddEventSource(new SqsEventSource(queue, new SqsEventSourceProps {
                 Enabled = true,
-                BatchSize = 500,
+                BatchSize = Math.Round(double.Parse(workerLambdaTimeout) * 5 * 0.5),
                 MaxBatchingWindow = Duration.Seconds(10)
             }));
             #endregion
