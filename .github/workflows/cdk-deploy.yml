@@ -16,9 +16,7 @@ jobs:
             APP_NAME: ${{ vars.APP_NAME }}
             ACCOUNT_AWS: ${{ vars.ACCOUNT_AWS }}
             REGION_AWS: ${{ vars.REGION_AWS }}
-            
-            COGNITO_DOMAIN: ${{ vars.COGNITO_DOMAIN }}
-            
+                        
             AOT_MINIMAL_API_DIRECTORY: ${{ vars.AOT_MINIMAL_API_DIRECTORY }}
             AOT_MINIMAL_API_LAMBDA_HANDLER: ${{ vars.AOT_MINIMAL_API_LAMBDA_HANDLER }}
             AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE: ${{ vars.AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE }}
@@ -26,14 +24,13 @@ jobs:
             AOT_MINIMAL_API_MAPPING_DOMAIN_NAME: ${{ vars.AOT_MINIMAL_API_MAPPING_DOMAIN_NAME }}
             AOT_MINIMAL_API_MAPPING_KEY: ${{ vars.AOT_MINIMAL_API_MAPPING_KEY }}
             
-            VPC_ID: ${{ vars.VPC_ID }}
-            SUBNET_ID_1: ${{ vars.SUBNET_ID_1 }}
-            SUBNET_ID_2: ${{ vars.SUBNET_ID_2 }}
-            FARGATE_CPU: ${{ vars.FARGATE_CPU }}
-            FARGATE_MEMORY: ${{ vars.FARGATE_MEMORY }}
-            FARGATE_DIRECTORY: ${{ vars.FARGATE_DIRECTORY }}
             SES_NOMBRE_DE_DEFECTO: ${{ vars.SES_NOMBRE_DE_DEFECTO }}
             SES_CORREO_DE_DEFECTO: ${{ vars.SES_CORREO_DE_DEFECTO }}
+            
+            WORKER_DIRECTORY: ${{ vars.WORKER_DIRECTORY }}
+            WORKER_LAMBDA_HANDLER: ${{ vars.WORKER_LAMBDA_HANDLER }}
+            WORKER_LAMBDA_MEMORY_SIZE: ${{ vars.WORKER_LAMBDA_MEMORY_SIZE }}
+            WORKER_LAMBDA_TIMEOUT: ${{ vars.WORKER_LAMBDA_TIMEOUT }}
                         
         steps:
             - name: Checkout Repositorio
@@ -60,6 +57,13 @@ jobs:
                     cd ./publish &&
                     zip -r -T ./publish.zip ./*"
               
+            - name: Publish .NET Lambda
+              working-directory: ${{ vars.WORKER_DIRECTORY }}
+              run: dotnet publish /p:PublishDir=../publish /p:PublishReadyToRun=true -r linux-x64 --no-self-contained
+              
+            - name: Compress Publish Directory .NET Lambda
+              working-directory: ${{ vars.WORKER_DIRECTORY }}/publish
+              run: zip -r -T ./publish.zip ./*
                     
             - name: Configure AWS Credentials
               uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4
