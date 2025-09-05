@@ -64,7 +64,7 @@ namespace HermesCdk {
             Queue queue = new(this, $"{appName}Queue", new QueueProps {
                 QueueName = $"{appName}Queue",
                 RetentionPeriod = Duration.Days(14),
-                VisibilityTimeout = Duration.Minutes(5),
+                VisibilityTimeout = Duration.Minutes(double.Parse(workerLambdaTimeout)),
                 EnforceSSL = true,
                 DeadLetterQueue = new DeadLetterQueue {
                     Queue = dlq,
