@@ -330,7 +330,8 @@ namespace HermesCdk {
             workerFunction.AddEventSource(new SqsEventSource(queue, new SqsEventSourceProps {
                 Enabled = true,
                 BatchSize = Math.Round(double.Parse(workerLambdaTimeout) * 5 * 0.5),
-                MaxBatchingWindow = Duration.Seconds(10)
+                MaxBatchingWindow = Duration.Seconds(10),
+                ReportBatchItemFailures = true,
             }));
             #endregion
         }
