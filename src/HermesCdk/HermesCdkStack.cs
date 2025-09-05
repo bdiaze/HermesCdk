@@ -14,6 +14,8 @@ using Amazon.CDK.AWS.Lambda.EventSources;
 using Amazon.CDK.AWS.Logs;
 using Amazon.CDK.AWS.S3;
 using Amazon.CDK.AWS.SecretsManager;
+using Amazon.CDK.AWS.SNS;
+using Amazon.CDK.AWS.SNS.Subscriptions;
 using Amazon.CDK.AWS.SQS;
 using Amazon.CDK.AWS.SSM;
 using Constructs;
@@ -48,13 +50,50 @@ namespace HermesCdk {
             string workerLambdaMemorySize = System.Environment.GetEnvironmentVariable("WORKER_LAMBDA_MEMORY_SIZE") ?? throw new ArgumentNullException("WORKER_LAMBDA_MEMORY_SIZE");
             string workerLambdaTimeout = System.Environment.GetEnvironmentVariable("WORKER_LAMBDA_TIMEOUT") ?? throw new ArgumentNullException("WORKER_LAMBDA_TIMEOUT");
 
+            string notificationEmails = System.Environment.GetEnvironmentVariable("NOTIFICATION_EMAILS") ?? throw new ArgumentNullException("NOTIFICATION_EMAILS");
+
+
             #region SQS
             // Creación de cola...
+            Queue dlq = new(this, $"{appName}DeadLetterQueue", new QueueProps {
+                QueueName = $"{appName}DeadLetterQueue",
+                RetentionPeriod = Duration.Days(14),
+                EnforceSSL = true,
+            });
+
             Queue queue = new(this, $"{appName}Queue", new QueueProps {
                 QueueName = $"{appName}Queue",
                 RetentionPeriod = Duration.Days(14),
                 VisibilityTimeout = Duration.Seconds(double.Parse(workerLambdaTimeout)),
                 EnforceSSL = true,
+                DeadLetterQueue = new DeadLetterQueue {
+                    Queue = dlq,
+                    MaxReceiveCount = 5,
+                },
+            });
+
+            // Se crea SNS topic para notificaciones asociadas a la instancia...
+            Topic topic = new(this, $"{appName}DeadLetterQueueSNSTopic", new TopicProps {
+                TopicName = $"{appName}DeadLetterQueueSNSTopic",
+            });
+
+            foreach (string email in notificationEmails.Split(",")) {
+                topic.AddSubscription(new EmailSubscription(email));
+            }
+
+            // Se crea alarma para enviar notificación cuando llegue un elemento al DLQ...
+            _ = new Alarm(this, $"{appName}DeadLetterQueueAlarm", new AlarmProps {
+                AlarmName = $"{appName}DeadLetterQueueAlarm",
+                AlarmDescription = $"Alarma para notificar cuando llega algun elemento a la DLQ de {appName}",
+                Metric = dlq.MetricApproximateNumberOfMessagesVisible(new MetricOptions {
+                    Period = Duration.Minutes(5),
+                    Statistic = Stats.MAXIMUM,
+                }),
+                Threshold = 1,
+                EvaluationPeriods = 1,
+                DatapointsToAlarm = 1,
+                ComparisonOperator = ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+                TreatMissingData = TreatMissingData.NOT_BREACHING,
             });
 
             StringParameter stringParameterQueueUrl = new(this, $"{appName}StringParameterQueueUrl", new StringParameterProps {

@@ -32,6 +32,8 @@ jobs:
             WORKER_LAMBDA_MEMORY_SIZE: ${{ vars.WORKER_LAMBDA_MEMORY_SIZE }}
             WORKER_LAMBDA_TIMEOUT: ${{ vars.WORKER_LAMBDA_TIMEOUT }}
                         
+            NOTIFICATION_EMAILS: ${{ vars.NOTIFICATION_EMAILS }}
+                        
         steps:
             - name: Checkout Repositorio
               uses: actions/checkout@v4
