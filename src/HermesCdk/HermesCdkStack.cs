@@ -282,7 +282,6 @@ namespace HermesCdk {
                                         "ssm:GetParameter"
                                     ],
                                     Resources = [
-                                        stringParameterQueueUrl.ParameterArn,
                                         stringParameterDireccionDeDefecto.ParameterArn,
                                     ],
                                 }),

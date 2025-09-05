@@ -63,7 +63,6 @@ public class Function
 
         // Obteniendo URL de la cola de correos a procesar...
         string nombreAplicacion = variableEntorno.Obtener("APP_NAME");
-        string queueUrl = await parameterStore.ObtenerParametro($"/{nombreAplicacion}/SQS/QueueUrl");
 
         // Obteniendo dirección de correos por defecto a usar como remitente...
         DireccionCorreo direccionDeDefecto = JsonSerializer.Deserialize<DireccionCorreo>(await parameterStore.ObtenerParametro($"/{nombreAplicacion}/SES/DireccionDeDefecto"))!;
