@@ -159,7 +159,7 @@ public class Function
 
         LambdaLogger.Log(
             $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
-            $"Termino exitosamente el envio de correos.");
+            $"Termino exitosamente el envio de correos - Casos con error: {listaMensajesError.Count}.");
 
         return new SQSBatchResponse {
             BatchItemFailures = listaMensajesError
