@@ -3,8 +3,6 @@ using Amazon.Lambda.SQSEvents;
 using Amazon.SimpleEmailV2;
 using Amazon.SimpleEmailV2.Model;
 using Amazon.SimpleSystemsManagement;
-using Amazon.SQS;
-using Amazon.SQS.Model;
 using LambdaWorkerEnvioCorreos.Helpers;
 using LambdaWorkerEnvioCorreos.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +10,7 @@ using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
+using static Amazon.Lambda.SQSEvents.SQSBatchResponse;
 using static Amazon.Lambda.SQSEvents.SQSEvent;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
@@ -28,7 +27,6 @@ public class Function
         builder.ConfigureServices((context, services) => {
             #region Singleton AWS Services
             services.AddSingleton<IAmazonSimpleSystemsManagement, AmazonSimpleSystemsManagementClient>();
-            services.AddSingleton<IAmazonSQS, AmazonSQSClient>();
             services.AddSingleton<IAmazonSimpleEmailServiceV2, AmazonSimpleEmailServiceV2Client>();
 
             #endregion
@@ -44,8 +42,10 @@ public class Function
         serviceProvider = app.Services;
     }
 
-    public async Task FunctionHandler(SQSEvent evnt, ILambdaContext context)
+    public async Task<SQSBatchResponse> FunctionHandler(SQSEvent evnt, ILambdaContext context)
     {
+        List<BatchItemFailure> listaMensajesError = [];
+
         Stopwatch stopwatch = Stopwatch.StartNew();
         Stopwatch stopwatchDelay = Stopwatch.StartNew();
 
@@ -55,7 +55,6 @@ public class Function
 
         VariableEntornoHelper variableEntorno = serviceProvider.GetRequiredService<VariableEntornoHelper>();
         ParameterStoreHelper parameterStore = serviceProvider.GetRequiredService<ParameterStoreHelper>();
-        IAmazonSQS sqsClient = serviceProvider.GetRequiredService<IAmazonSQS>();
         IAmazonSimpleEmailServiceV2 sesClient = serviceProvider.GetRequiredService<IAmazonSimpleEmailServiceV2>();
 
         LambdaLogger.Log(
@@ -78,13 +77,15 @@ public class Function
         int maxDelayMs = (int)(1000 / accountResponse.SendQuota.MaxSendRate!);
         int cantEmailsDisponibles = (int)(accountResponse.SendQuota.Max24HourSend! - accountResponse.SendQuota.SentLast24Hours!);
 
-        // Si no quedan correos por enviar, se espera una hora y se vuelve a validar si es posible mandarlos...
+        // Si no quedan correos por enviar, se retornan todos los elementos para reprocesar...
         if (cantEmailsDisponibles == 0) {
             LambdaLogger.Log(
             $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
             $"Ya se uso la capacidad diaria de SES, no se procesarán los mensajes.");
 
-            return;
+            return new SQSBatchResponse {
+                BatchItemFailures = [.. evnt.Records.Select(r => new BatchItemFailure { ItemIdentifier = r.MessageId })]
+            };
         }
 
         LambdaLogger.Log(
@@ -144,16 +145,15 @@ public class Function
                 }
 
                 stopwatchDelay = Stopwatch.StartNew();
-
-                DeleteMessageResponse deleteResponse = await sqsClient.DeleteMessageAsync(queueUrl, mensaje.ReceiptHandle);
-                if (deleteResponse.HttpStatusCode != HttpStatusCode.OK) {
-                    throw new Exception($"Error al quitar mensaje de la cola [DeleteMessageResponse - Message ID: {mensaje.MessageId} - HttpStatusCode: {deleteResponse.HttpStatusCode}]");
-                }
             } catch (Exception ex) {
                 LambdaLogger.Log(LogLevel.Error,
                     $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
                     $"Ocurrio un error al procesar correo {mensaje.MessageId}. " +
                     $"{ex}");
+
+                listaMensajesError.Add(new BatchItemFailure {
+                    ItemIdentifier = mensaje.MessageId,
+                });
             }
         }
 
@@ -161,5 +161,8 @@ public class Function
             $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
             $"Termino exitosamente el envio de correos.");
 
+        return new SQSBatchResponse {
+            BatchItemFailures = listaMensajesError
+        };
     }
 }
