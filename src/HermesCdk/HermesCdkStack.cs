@@ -5,6 +5,7 @@ using Amazon.CDK.AWS.ApplicationAutoScaling;
 using Amazon.CDK.AWS.Batch;
 using Amazon.CDK.AWS.CertificateManager;
 using Amazon.CDK.AWS.CloudWatch;
+using Amazon.CDK.AWS.CloudWatch.Actions;
 using Amazon.CDK.AWS.Cognito;
 using Amazon.CDK.AWS.EC2;
 using Amazon.CDK.AWS.ECS;
@@ -68,7 +69,7 @@ namespace HermesCdk {
                 EnforceSSL = true,
                 DeadLetterQueue = new DeadLetterQueue {
                     Queue = dlq,
-                    MaxReceiveCount = 5,
+                    MaxReceiveCount = 3,
                 },
             });
 
@@ -82,7 +83,7 @@ namespace HermesCdk {
             }
 
             // Se crea alarma para enviar notificación cuando llegue un elemento al DLQ...
-            _ = new Alarm(this, $"{appName}DeadLetterQueueAlarm", new AlarmProps {
+            Alarm alarm = new(this, $"{appName}DeadLetterQueueAlarm", new AlarmProps {
                 AlarmName = $"{appName}DeadLetterQueueAlarm",
                 AlarmDescription = $"Alarma para notificar cuando llega algun elemento a la DLQ de {appName}",
                 Metric = dlq.MetricApproximateNumberOfMessagesVisible(new MetricOptions {
@@ -95,6 +96,8 @@ namespace HermesCdk {
                 ComparisonOperator = ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
                 TreatMissingData = TreatMissingData.NOT_BREACHING,
             });
+            alarm.AddAlarmAction(new SnsAction(topic));
+
 
             StringParameter stringParameterQueueUrl = new(this, $"{appName}StringParameterQueueUrl", new StringParameterProps {
                 ParameterName = $"/{appName}/SQS/QueueUrl",
