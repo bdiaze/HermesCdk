@@ -535,9 +535,72 @@ workerFunction.AddEventSource(new SqsEventSource(..., new SqsEventSourceProps {
 El principal proposito de la API es recepcionar la información del correo que se desea enviar y direccionar a la cola de procesamiento. Por este motivo la API solo contiene un endpoint:
 
 #### Endpoint
-| URL | Método | Cuerpo | Retorno |
-|-----|--------|------------|---------|
-| `/Correo/Enviar` | POST | <code>{\\n&nbsp;&nbsp;"de": {<br>&nbsp;&nbsp;&nbsp;&nbsp;"nombre": "...",<br>&nbsp;&nbsp;&nbsp;&nbsp;"correo": "..."<br>&nbsp;&nbsp;},<br>&nbsp;&nbsp;"para": [<br>&nbsp;&nbsp;&nbsp;&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"nombre": "...",<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"correo": "..."<br>&nbsp;&nbsp;&nbsp;&nbsp;},<br>&nbsp;&nbsp;&nbsp;&nbsp;...<br>&nbsp;&nbsp;],<br>&nbsp;&nbsp;"cc": [<br>&nbsp;&nbsp;&nbsp;&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"nombre": "...",<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"correo": "..."<br>&nbsp;&nbsp;&nbsp;&nbsp;},<br>&nbsp;&nbsp;&nbsp;&nbsp;...<br>&nbsp;&nbsp;],<br>&nbsp;&nbsp;"cco": [<br>&nbsp;&nbsp;&nbsp;&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"nombre": "...",<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"correo": "..."<br>&nbsp;&nbsp;&nbsp;&nbsp;},<br>&nbsp;&nbsp;&nbsp;&nbsp;...<br>&nbsp;&nbsp;],<br>&nbsp;&nbsp;"responderA": [<br>&nbsp;&nbsp;&nbsp;&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"nombre": "...",<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"correo": "..."<br>&nbsp;&nbsp;&nbsp;&nbsp;},<br>&nbsp;&nbsp;&nbsp;&nbsp;...<br>&nbsp;&nbsp;],<br>&nbsp;&nbsp;"asunto": "...",<br>&nbsp;&nbsp;"cuerpo": "...",<br>&nbsp;&nbsp;"adjuntos": [<br>&nbsp;&nbsp;&nbsp;&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"nombreArchivo": "...",<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"tipoMime": "...",<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"contenidoBase64": "..."<br>&nbsp;&nbsp;&nbsp;&nbsp;},<br>&nbsp;&nbsp;&nbsp;&nbsp;...<br>&nbsp;&nbsp;]<br>}</code> | <code>{<br>&nbsp;&nbsp;"queueMessageId": "..."<br>}</code> |
+<table>
+<tr>
+<th>URL</th>
+<th>Método</th>
+<th>Cuerpo</th>
+<th>Retorno</th>
+</tr>
+<tr>
+<td>`/Correo/Enviar`</td>
+<td>POST</td>
+<td>
+        
+```json 
+{
+    "de": {
+        "nombre": "...",
+        "correo": "..."
+    },
+    "para": [
+        {
+            "nombre": "...",
+            "correo": "..."
+        },
+    ],
+    "cc": [
+        {
+            "nombre": "...",
+            "correo": "..."
+        },
+    ],
+    "cco": [
+        {
+            "nombre": "...",
+            "correo": "..."
+        },
+    ],
+    "responderA": [
+        {
+            "nombre": "...",
+            "correo": "..."
+        },
+    ],
+    "asunto": "...",
+    "cuerpo": "...",
+    "adjuntos": [
+        {
+            "nombreArchivo": "...",
+            "tipoMime": "...",
+            "contenidoBase64": "..."
+        },
+    ]
+}
+```
+
+</td>
+<td>
+
+```json
+{
+    "queueMessageId": "..."
+}
+```
+
+</td>
+</tr>
+</table>
 
 #### Código
 
