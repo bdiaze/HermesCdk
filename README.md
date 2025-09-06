@@ -716,139 +716,19 @@ public async Task<SQSBatchResponse> FunctionHandler(SQSEvent evnt, ILambdaContex
 
 El despliegue se lleva a cabo mediante GitHub Actions, para ello se configura la receta de despliegue con los siguientes pasos:
 
-<table>
-<tr>
-<th>Paso</th>
-<th>Comando</th>
-<th>Descripción</th>
-</tr>
-<tr>
-<td>Checkout Repositorio</td>
-<td>
-
-```yaml
-actions/checkout@v4
-```
-
-</td>
-<td>Se descarga el repositorio en runner.</td>
-</tr>
-<tr>
-<td>Instalar .NET</td>
-<td>
-
-```yaml
-actions/setup-dotnet@v4
-```
-
-</td>
-<td>Se instala .NET en el runner.</td>
-</tr>
-<tr>
-<td>Instalar Node.js</td>
-<td>
-
-```yaml
-actions/setup-node@v4
-```
-
-</td>
-<td>Se instala Node.js en el runner.</td>
-</tr>
-<tr>
-<td>Instalar AWS CDK</td>
-<td>
-
-```yaml
-npm install -g aws-cdk
-```
-
-</td>
-<td>Se instala aws-cdk con NPM.</td>
-</tr>
-<tr>
-<td>Publish .NET AoT Minimal API</td>
-<td>
-
-```yaml
-docker run --rm -v ...:/src -w /src .../amazonlinux:2023 \bash -c "
-yum install -y dotnet-sdk-8.0 gcc zlib-devel &&
-dotnet publish /p:PublishAot=true -r linux-x64 --self-contained &&
-cd ./publish &&
-zip -r -T ./publish.zip ./*"
-```
-
-</td>
-<td>Se publica y comprime el proyecto de la API AoT.</br>
-Por ser AoT, se publica usando docker con la imagen de Amazon Linux 2023.</td>
-</tr>
-<tr>
-<td>Publish .NET Lambda</td>
-<td>
-
-```yaml
-dotnet publish /p:PublishReadyToRun=true -r linux-x64 --no-self-contained
-```
-
-</td>
-<td>Se publica el proyecto de la Lambda Worker.</td>
-</tr>
-<tr>
-<td>Compress Publish Directory .NET Lambda</td>
-<td>
-
-```yaml
-zip -r -T ./publish.zip ./*
-```
-
-</td>
-<td>Se comprime la publicación de la Lambda Worker.</td>
-</tr>
-<tr>
-<td>Configure AWS Credentials</td>
-<td>
-
-```yaml
-aws-actions/configure-aws-credentials
-```
-
-</td>
-<td>Se configuran credenciales para despliegue en AWS.</td>
-</tr>
-<tr>
-<td>CDK Synth</td>
-<td>
-
-```yaml
-cdk synth
-```
-
-</td>
-<td>Se sintetiza la aplicación CDK.</td>
-</tr>
-<tr>
-<td>CDK Diff</td>
-<td>
-
-```yaml
-cdk --app cdk.out diff
-```
-
-</td>
-<td>Se obtienen las diferencias entre nueva versión y versión desplegada.</td>
-</tr>
-<tr>
-<td>CDK Deploy</td>
-<td>
-
-```yaml
-cdk --app cdk.out deploy --require-approval never
-```
-
-</td>
-<td>Se despliega la aplicación CDK.</td>
-</tr>
-</table>
+| Paso | Comando | Descripción |
+|------|---------|-------------|
+| Checkout Repositorio | `actions/checkout@v4` | Se descarga el repositorio en runner. |
+| Instalar .NET | `actions/setup-dotnet@v4` | Se instala .NET en el runner. |
+| Instalar Node.js | `actions/setup-node@v4` | Se instala Node.js en el runner. | 
+| Instalar AWS CDK | `npm install -g aws-cdk` | Se instala aws-cdk con NPM. |
+| Publish .NET AoT Minimal API | `docker run --rm -v ...:/src -w /src .../amazonlinux:2023 \bash -c "`<br> `yum install -y dotnet-sdk-8.0 gcc zlib-devel &&`<br> `dotnet publish /p:PublishAot=true -r linux-x64 --self-contained &&`<br> `cd ./publish &&`<br> `zip -r -T ./publish.zip ./*"`| Se publica y comprime el proyecto de la API AoT.<br> Por ser AoT, se publica usando docker con la imagen de Amazon Linux 2023. |
+| Publish .NET Lambda | `dotnet publish /p:PublishReadyToRun=true -r linux-x64 --no-self-contained` | Se publica el proyecto de la Lambda Worker |
+| Compress Publish Directory .NET Lambda | `zip -r -T ./publish.zip ./*` | Se comprime la publicación de la Lambda Worker |
+| Configure AWS Credentials | `aws-actions/configure-aws-credentials` | Se configuran credenciales para despliegue en AWS. |
+| CDK Synth | `cdk synth` | Se sintetiza la aplicación CDK. |
+| CDK Diff | `cdk --app cdk.out diff` | Se obtienen las diferencias entre nueva versión y versión desplegada. |
+| CDK Deploy | `cdk --app cdk.out deploy --require-approval never` | Se despliega la aplicación CDK. |
 
 ### Variables y Secretos de Entorno
 
