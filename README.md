@@ -543,8 +543,16 @@ El principal proposito de la API es recepcionar la información del correo que s
 <th>Retorno</th>
 </tr>
 <tr>
-<td>`/Correo/Enviar`</td>
-<td>POST</td>
+<td>
+
+`/Correo/Enviar`
+
+</td>
+<td>
+
+`POST`
+
+</td>
 <td>
         
 ```json 
