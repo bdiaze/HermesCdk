@@ -53,6 +53,16 @@ namespace HermesCdk {
 
             string notificationEmails = System.Environment.GetEnvironmentVariable("NOTIFICATION_EMAILS") ?? throw new ArgumentNullException("NOTIFICATION_EMAILS");
 
+            #region SNS Topic
+            // Se crea SNS topic para notificaciones...
+            Topic topic = new(this, $"{appName}NotificationSNSTopic", new TopicProps {
+                TopicName = $"{appName}NotificationSNSTopic",
+            });
+
+            foreach (string email in notificationEmails.Split(",")) {
+                topic.AddSubscription(new EmailSubscription(email));
+            }
+            #endregion
 
             #region SQS
             // Creación de cola...
@@ -72,15 +82,6 @@ namespace HermesCdk {
                     MaxReceiveCount = 3,
                 },
             });
-
-            // Se crea SNS topic para notificaciones asociadas a la instancia...
-            Topic topic = new(this, $"{appName}DeadLetterQueueSNSTopic", new TopicProps {
-                TopicName = $"{appName}DeadLetterQueueSNSTopic",
-            });
-
-            foreach (string email in notificationEmails.Split(",")) {
-                topic.AddSubscription(new EmailSubscription(email));
-            }
 
             // Se crea alarma para enviar notificación cuando llegue un elemento al DLQ...
             Alarm alarm = new(this, $"{appName}DeadLetterQueueAlarm", new AlarmProps {

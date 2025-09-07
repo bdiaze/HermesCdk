@@ -7,9 +7,11 @@
     - [API Gateway Custom Domain Name](#api-gateway-custom-domain-name)
     - [SES](#ses)
   - [Recursos Creados](#recursos-creados)
+    - [Sistema de Notificaciones](#sistema-de-notificaciones)
+      - [SNS Topic y Subscriptions](#sns-topic-y-subscriptions)
     - [Sistema de Colas](#sistema-de-colas)
       - [SQS Queue y Dead Letter Queue](#sqs-queue-y-dead-letter-queue)
-      - [SNS Topic y CloudWatch Alarm](#sns-topic-y-cloudwatch-alarm)
+      - [CloudWatch Alarm](#cloudwatch-alarm)
       - [Systems Manager String Parameter](#systems-manager-string-parameter)
     - [API Recepcion Solicitudes Envio](#api-recepcion-solicitudes-envio)
       - [Log Group e IAM Role](#log-group-e-iam-role)
@@ -93,6 +95,31 @@ Para ver un ejemplo de como crear un SES Identity: [BDiazESimpleEmailServiceCdk]
 
 ## Recursos Creados
 
+### Sistema de Notificaciones
+
+En primer lugar, se creará un sistema a usar para notificar eventos de interés al equipo productivo. Entre los eventos de interés se encontrará las CloudWatch Alarms que monitorean las DLQ.
+
+#### SNS Topic y Subscriptions
+
+El sistema consiste en un SNS Topic con email subscriptions.
+
+
+<ins>Código para crear SNS Topic con Email Subscriptions:</ins>
+
+```csharp
+using Amazon.CDK.AWS.SNS;
+using Amazon.CDK.AWS.SNS.Subscriptions;
+
+// Se crea SNS topic para notificaciones...
+Topic topic = new(this, ..., new TopicProps {
+    TopicName = ...,
+});
+
+foreach (string email in notificationEmails.Split(",")) {
+    topic.AddSubscription(new EmailSubscription(email));
+}
+```
+
 ### Sistema de Colas
 
 Como parte de la solución, se cuenta con un sistema de colas para no saturar al servicio SES de AWS, el cual cuenta con una capacidad máxima de envío de correos por segundo.
@@ -128,26 +155,15 @@ Queue queue = new(this, ..., new QueueProps {
 > [!NOTE]
 > Como se puede observar en el código de anterior, primero se crea la DLQ (Dead Letter Queue) y posteriormente se crea la Queue que almacenerá los correos a enviar. La DLQ se usará para almacenar los correos fallido para su posterior manejo.
 
-#### SNS Topic y CloudWatch Alarm
+#### CloudWatch Alarm
 
-Además, se creará un sistema de notificación que monitoree la DLQ y mande correos informando cuando ha fallado un envío, de tal manera que el equipo responsable pueda mitigar el error.
+Además, se crearán las Alarms que monitorean [la DLQ](#sqs-queue-y-dead-letter-queue) y publican notificaciones en el [Topic creado anteriormente](#sns-topic-y-subscriptions).
 
-<ins>Código para crear SNS Topic y CloudWatch Alarm</ins>
+<ins>Código para crear CloudWatch Alarm</ins>
 
 ```csharp
-using Amazon.CDK.AWS.SNS;
-using Amazon.CDK.AWS.SNS.Subscriptions;
 using Amazon.CDK.AWS.CloudWatch;
 using Amazon.CDK.AWS.CloudWatch.Actions;
-
-// Se crea SNS topic para notificaciones asociadas a la instancia...
-Topic topic = new(this, ..., new TopicProps {
-    TopicName = ...,
-});
-
-foreach (string email in notificationEmails.Split(",")) {
-    topic.AddSubscription(new EmailSubscription(email));
-}
 
 // Se crea alarma para enviar notificación cuando llegue un elemento al DLQ...
 Alarm alarm = new(this, ..., new AlarmProps {
