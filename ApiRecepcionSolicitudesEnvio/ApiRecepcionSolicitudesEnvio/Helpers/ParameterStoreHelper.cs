@@ -2,18 +2,25 @@
 using Amazon.SimpleSystemsManagement.Model;
 
 namespace ApiRecepcionSolicitudesEnvio.Helpers {
-    public class ParameterStoreHelper {
-        public static async Task<string> ObtenerParametro(string parameterArn) {
-            AmazonSimpleSystemsManagementClient client = new();
-            GetParameterResponse response = await client.GetParameterAsync(new GetParameterRequest {
-                Name = parameterArn
-            });
+    public class ParameterStoreHelper(IAmazonSimpleSystemsManagement client) {
+        
+        private readonly Dictionary<string, string> parametersValues = [];
 
-            if (response == null || response.Parameter == null) {
-                throw new Exception("No se pudo rescatar correctamente el parámetro");
+        public async Task<string> ObtenerParametro(string parameterArn) {
+            if (!parametersValues.TryGetValue(parameterArn, out string? value)) {
+                GetParameterResponse response = await client.GetParameterAsync(new GetParameterRequest {
+                    Name = parameterArn
+                });
+
+                if (response == null || response.Parameter == null) {
+                    throw new Exception("No se pudo rescatar correctamente el parámetro");
+                }
+
+                value = response.Parameter.Value!;
+                parametersValues[parameterArn] = value;
             }
 
-            return response.Parameter.Value;
+            return value;
         }
     }
 }

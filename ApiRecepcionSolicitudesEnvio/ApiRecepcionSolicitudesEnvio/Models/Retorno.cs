@@ -1,3 +1,5 @@
 ﻿namespace ApiRecepcionSolicitudesEnvio.Models {
-    public record Retorno(string QueueMessageId);
+    public class Retorno { 
+        public required string QueueMessageId { get; set; }    
+    }
 }

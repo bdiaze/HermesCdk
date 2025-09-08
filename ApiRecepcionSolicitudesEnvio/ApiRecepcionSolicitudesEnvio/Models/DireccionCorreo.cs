@@ -1,8 +1,11 @@
 ﻿namespace ApiRecepcionSolicitudesEnvio.Models {
-    public record DireccionCorreo(string? Nombre, string Correo) {
+    public class DireccionCorreo {
+        public string? Nombre { get; set; } 
+        public required string Correo { get; set; }
+        
         public override string ToString() {
             if (Nombre != null) return $"\"{Nombre}\" <{Correo}>";
             return Correo;
         }
-    };
+    }
 }

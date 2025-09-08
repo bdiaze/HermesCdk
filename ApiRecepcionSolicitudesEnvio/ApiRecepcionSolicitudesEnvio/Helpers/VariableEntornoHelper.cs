@@ -1,5 +1,5 @@
 ﻿namespace ApiRecepcionSolicitudesEnvio.Helpers {
-    public class VariableEntorno(IHostEnvironment env, IConfiguration config) {
+    public class VariableEntornoHelper(IHostEnvironment env, IConfiguration config) {
         public string Obtener(string nombre) {
             if (env.IsDevelopment()) {
                 return config[$"VariableEntorno:{nombre}"] ?? throw new Exception($"Debes agregar el atributo VariableEntorno > {nombre} en el archivo appsettings.Development.json para ejecutar localmente.");
