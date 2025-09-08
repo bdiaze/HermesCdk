@@ -111,7 +111,7 @@ namespace HermesCdk {
             #region API Gateway y Lambda
             // Creación de log group lambda...
             LogGroup logGroup = new(this, $"{appName}APILogGroup", new LogGroupProps { 
-                LogGroupName = $"/aws/lambda/{appName}APILambdaFunction/logs",
+                LogGroupName = $"/aws/lambda/{appName}API/logs",
                 RemovalPolicy = RemovalPolicy.DESTROY
             });
 
@@ -155,7 +155,7 @@ namespace HermesCdk {
 
             // Creación de la función lambda...
             Function function = new(this, $"{appName}APILambdaFunction", new FunctionProps {
-                FunctionName = $"{appName}APILambdaFunction",
+                FunctionName = $"{appName}API",
                 Description = $"API encargada de ingresar los correos a la cola de envio de la aplicacion {appName}",
                 Runtime = Runtime.DOTNET_8,
                 Handler = handler,
@@ -173,14 +173,14 @@ namespace HermesCdk {
 
             // Creación de access logs...
             LogGroup logGroupAccessLogs = new(this, $"{appName}APILambdaFunctionLogGroup", new LogGroupProps {
-                LogGroupName = $"/aws/lambda/{appName}APILambdaFunction/access_logs",
+                LogGroupName = $"/aws/lambda/{appName}API/access_logs",
                 Retention = RetentionDays.ONE_MONTH,
                 RemovalPolicy = RemovalPolicy.DESTROY
             });
 
             // Creación de la LambdaRestApi...
             LambdaRestApi lambdaRestApi = new(this, $"{appName}APILambdaRestApi", new LambdaRestApiProps {
-                RestApiName = $"{appName}APILambdaRestApi",
+                RestApiName = $"{appName}API",
                 Handler = function,
                 DeployOptions = new StageOptions {
                     AccessLogDestination = new LogGroupLogDestination(logGroupAccessLogs),
@@ -304,7 +304,7 @@ namespace HermesCdk {
 
             // Creación de la función lambda...
             Function workerFunction = new(this, $"{appName}WorkerLambdaFunction", new FunctionProps {
-                FunctionName = $"{appName}WorkerEnvioCorreoLambdaFunction",
+                FunctionName = $"{appName}WorkerEnvioCorreo",
                 Description = $"Funcion worker encargada de enviar correos desde la cola de la aplicacion {appName}",
                 Runtime = Runtime.DOTNET_8,
                 Handler = workerLambdaHandler,
@@ -322,8 +322,6 @@ namespace HermesCdk {
 
             workerFunction.AddEventSource(new SqsEventSource(queue, new SqsEventSourceProps {
                 Enabled = true,
-                BatchSize = Math.Round(double.Parse(workerLambdaTimeout) * 5 * 0.5),
-                MaxBatchingWindow = Duration.Seconds(15),
                 ReportBatchItemFailures = true,
             }));
             #endregion
