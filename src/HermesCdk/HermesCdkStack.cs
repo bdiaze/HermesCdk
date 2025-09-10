@@ -215,7 +215,7 @@ namespace HermesCdk {
 
             // Se crea API Key...
             ApiKey apiGatewayKey = new(this, $"{appName}APIAPIKey", new ApiKeyProps {
-                ApiKeyName = $"{appName}APIAPIKey",
+                ApiKeyName = $"{appName}APIKey",
                 Description = $"API Key de {appName} API",
             });
             usagePlan.AddApiKey(apiGatewayKey);
