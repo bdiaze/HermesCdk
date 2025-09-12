@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LambdaWorkerEnvioCorreos.Helpers;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +10,7 @@ namespace LambdaWorkerEnvioCorreos.Models {
         public string? Nombre { get; set; }
         public required string Correo { get; set; }
         public override string ToString() {
-            if (Nombre != null) {
+            if (!string.IsNullOrWhiteSpace(Nombre)) {
                 return $"\"{Nombre}\" <{Correo}>";
             }
             return Correo;

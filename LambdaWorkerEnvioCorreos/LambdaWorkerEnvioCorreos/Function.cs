@@ -101,31 +101,31 @@ public class Function
                     attachments = [];
                     foreach (Adjunto adjunto in correo.Adjuntos) {
                         attachments.Add(new Attachment {
-                            FileName = adjunto.NombreArchivo,
-                            ContentType = adjunto.TipoMime,
-                            RawContent = new MemoryStream(Convert.FromBase64String(adjunto.ContenidoBase64))
+                            FileName = CaracteresEspeciales.Limpiar(adjunto.NombreArchivo),
+                            ContentType = CaracteresEspeciales.Limpiar(adjunto.TipoMime),
+                            RawContent = new MemoryStream(Convert.FromBase64String(CaracteresEspeciales.LimpiarBase64(adjunto.ContenidoBase64)))
                         });
                     }
                 }
 
                 SendEmailRequest request = new() {
-                    FromEmailAddress = correo.De.ToString(),
+                    FromEmailAddress = CaracteresEspeciales.Limpiar(correo.De.ToString()),
                     Destination = new Destination {
-                        ToAddresses = [.. correo.Para.Select(c => c.ToString())],
-                        CcAddresses = correo.Cc?.Select(c => c.ToString()).ToList(),
-                        BccAddresses = correo.Cco?.Select(c => c.ToString()).ToList()
+                        ToAddresses = [.. correo.Para.Select(c => CaracteresEspeciales.Limpiar(c.ToString()))],
+                        CcAddresses = correo.Cc?.Select(c => CaracteresEspeciales.Limpiar(c.ToString())).ToList(),
+                        BccAddresses = correo.Cco?.Select(c => CaracteresEspeciales.Limpiar(c.ToString())).ToList()
                     },
-                    ReplyToAddresses = correo.ResponderA?.Select(c => c.ToString()).ToList(),
+                    ReplyToAddresses = correo.ResponderA?.Select(c => CaracteresEspeciales.Limpiar(c.ToString())).ToList(),
                     Content = new EmailContent {
-                        Simple = new Amazon.SimpleEmailV2.Model.Message {
+                        Simple = new Message {
                             Subject = new Content {
                                 Charset = "UTF-8",
-                                Data = correo.Asunto
+                                Data = CaracteresEspeciales.Limpiar(correo.Asunto)
                             },
                             Body = new Body {
                                 Html = new Content {
                                     Charset = "UTF-8",
-                                    Data = correo.Cuerpo
+                                    Data = CaracteresEspeciales.LimpiarExceptoSaltos(correo.Cuerpo)
                                 }
                             },
                             Attachments = attachments
