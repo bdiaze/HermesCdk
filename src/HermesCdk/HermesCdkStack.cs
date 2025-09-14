@@ -110,8 +110,9 @@ namespace HermesCdk {
             
             #region API Gateway y Lambda
             // Creación de log group lambda...
-            LogGroup logGroup = new(this, $"{appName}APILogGroup", new LogGroupProps { 
+            LogGroup logGroup = new(this, $"{appName}APILogGroup", new LogGroupProps {
                 LogGroupName = $"/aws/lambda/{appName}API/logs",
+                Retention = RetentionDays.ONE_MONTH,
                 RemovalPolicy = RemovalPolicy.DESTROY
             });
 
@@ -260,6 +261,7 @@ namespace HermesCdk {
             // Creación de log group lambda...
             LogGroup workerLogGroup = new(this, $"{appName}WorkerLogGroup", new LogGroupProps {
                 LogGroupName = $"/aws/lambda/{appName}WorkerEnvioCorreo/logs",
+                Retention = RetentionDays.ONE_MONTH,
                 RemovalPolicy = RemovalPolicy.DESTROY
             });
 
