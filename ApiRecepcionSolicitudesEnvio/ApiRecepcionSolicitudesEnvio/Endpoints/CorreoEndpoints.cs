@@ -23,7 +23,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
                     string jsonCorreo = JsonSerializer.Serialize(correo, AppJsonSerializerContext.Default.Correo);
 
                     SendMessageRequest request = new() {
-                        QueueUrl = await parameterStore.ObtenerParametro(variableEntorno.Obtener("PARAMETER_ARN_SQS_QUEUE_URL")),
+                        QueueUrl = variableEntorno.Obtener("SQS_QUEUE_URL"),
                         MessageBody = jsonCorreo
                     };
 

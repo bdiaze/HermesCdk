@@ -65,7 +65,10 @@ public class Function
         string nombreAplicacion = variableEntorno.Obtener("APP_NAME");
 
         // Obteniendo dirección de correos por defecto a usar como remitente...
-        DireccionCorreo direccionDeDefecto = JsonSerializer.Deserialize<DireccionCorreo>(await parameterStore.ObtenerParametro($"/{nombreAplicacion}/SES/DireccionDeDefecto"))!;
+        DireccionCorreo direccionDeDefecto = new() {
+            Nombre = variableEntorno.Obtener("SES_NOMBRE_DE_DEFECTO"),
+            Correo = variableEntorno.Obtener("SES_CORREO_DE_DEFECTO"),
+        };
 
         LambdaLogger.Log(
             $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +

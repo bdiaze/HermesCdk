@@ -99,14 +99,6 @@ namespace HermesCdk {
                 TreatMissingData = TreatMissingData.NOT_BREACHING,
             });
             alarm.AddAlarmAction(new SnsAction(topic));
-
-
-            StringParameter stringParameterQueueUrl = new(this, $"{appName}StringParameterQueueUrl", new StringParameterProps {
-                ParameterName = $"/{appName}/SQS/QueueUrl",
-                Description = $"Queue URL de la aplicacion {appName}",
-                StringValue = queue.QueueUrl,
-                Tier = ParameterTier.STANDARD,
-            });
             #endregion
 
             #region DynamoDB
@@ -146,15 +138,6 @@ namespace HermesCdk {
                         new PolicyDocument(new PolicyDocumentProps {
                             Statements = [
                                 new PolicyStatement(new PolicyStatementProps{
-                                    Sid = $"{appName}AccessToParameterStore",
-                                    Actions = [
-                                        "ssm:GetParameter"
-                                    ],
-                                    Resources = [
-                                        stringParameterQueueUrl.ParameterArn,
-                                    ],
-                                }),
-                                new PolicyStatement(new PolicyStatementProps{
                                     Sid = $"{appName}AccessToSQS",
                                     Actions = [
                                         "sqs:SendMessage"
@@ -192,8 +175,9 @@ namespace HermesCdk {
                 LogGroup = logGroup,
                 Environment = new Dictionary<string, string> {
                     { "APP_NAME", appName },
-                    { "PARAMETER_ARN_SQS_QUEUE_URL", stringParameterQueueUrl.ParameterArn },
-                },
+					{ "SQS_QUEUE_URL", queue.QueueUrl },
+					{ "DYNAMODB_TABLE_NAME", tablaMensajes.TableName }
+				},
                 Role = roleLambda,
             });
 
@@ -273,16 +257,6 @@ namespace HermesCdk {
             #endregion
 
             #region Lambda Worker Envio Correo
-            StringParameter stringParameterDireccionDeDefecto = new(this, $"{appName}StringParameterDireccionDeDefecto", new StringParameterProps {
-                ParameterName = $"/{appName}/SES/DireccionDeDefecto",
-                Description = $"Dirección por defecto para emitir correos de la aplicacion {appName}",
-                StringValue = JsonConvert.SerializeObject(new {
-                    Nombre = nombreDeDefecto,
-                    Correo = correoDeDefecto
-                }),
-                Tier = ParameterTier.STANDARD,
-            });
-
             // Creación de log group lambda...
             LogGroup workerLogGroup = new(this, $"{appName}WorkerLogGroup", new LogGroupProps {
                 LogGroupName = $"/aws/lambda/{appName}WorkerEnvioCorreo/logs",
@@ -304,15 +278,6 @@ namespace HermesCdk {
                         $"{appName}WorkerEnvioCorreoLambdaPolicy",
                         new PolicyDocument(new PolicyDocumentProps {
                             Statements = [
-                                new PolicyStatement(new PolicyStatementProps{
-                                    Sid = $"{appName}AccessToParameterStore",
-                                    Actions = [
-                                        "ssm:GetParameter"
-                                    ],
-                                    Resources = [
-                                        stringParameterDireccionDeDefecto.ParameterArn,
-                                    ],
-                                }),
                                 new PolicyStatement(new PolicyStatementProps{
                                     Sid = $"{appName}AccessToSendEmail",
                                     Actions = [
@@ -352,7 +317,10 @@ namespace HermesCdk {
                 LogGroup = workerLogGroup,
                 Environment = new Dictionary<string, string> {
                     { "APP_NAME", appName },
-                },
+					{ "SES_NOMBRE_DE_DEFECTO", nombreDeDefecto },
+					{ "SES_CORREO_DE_DEFECTO", correoDeDefecto },
+					{ "DYNAMODB_TABLE_NAME", tablaMensajes.TableName },
+				},
                 Role = roleWorkerLambda,
                 ReservedConcurrentExecutions = 1
             });
