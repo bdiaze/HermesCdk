@@ -21,12 +21,18 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
                 Stopwatch stopwatch = Stopwatch.StartNew();
 
                 try {
-                    // Se serializa el contenido del mensaje...
-                    string jsonCorreo = JsonSerializer.Serialize(correo, AppJsonSerializerContext.Default.Correo);
+                    // Se genera un ID único...
+                    string idMensaje = Guid.NewGuid().ToString();
+                    while ((await dynamo.Obtener(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), new Dictionary<string, object?> { ["IdMensaje"] = idMensaje })) != null) {
+						idMensaje = Guid.NewGuid().ToString();
+					}
+
+					// Se serializa el contenido del mensaje...
+					string jsonCorreo = JsonSerializer.Serialize(correo, AppJsonSerializerContext.Default.Correo);
 
                     // Se ingresa a DynamoDB...
 					Dictionary<string, object?>? itemDynamo = new() {
-						["IdMensaje"] = Guid.NewGuid().ToString(),
+						["IdMensaje"] = idMensaje,
 						["TipoMensaje"] = "Email",
 						["Estado"] = "Pendiente",
 						["Contenido"] = jsonCorreo,

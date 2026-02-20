@@ -33,6 +33,10 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
 				throw new Exception("Ocurrió un error al obtener el ítem de Dynamo");
 			}
 
+			if (response.Item == null || response.Item.Count == 0) {
+				return null;
+			}
+
 			return ToDict(response.Item);
 		}
 
