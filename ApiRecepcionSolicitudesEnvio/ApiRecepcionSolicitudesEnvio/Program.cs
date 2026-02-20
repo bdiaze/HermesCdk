@@ -31,7 +31,6 @@ builder.Services.AddSingleton<IAmazonSQS, AmazonSQSClient>();
 
 #region Singleton Helpers
 builder.Services.AddSingleton<VariableEntornoHelper>();
-builder.Services.AddSingleton<ParameterStoreHelper>();
 builder.Services.AddSingleton<DynamoHelper>();
 #endregion
 
