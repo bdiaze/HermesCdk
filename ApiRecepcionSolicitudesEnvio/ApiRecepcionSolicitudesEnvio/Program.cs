@@ -1,3 +1,4 @@
+using Amazon.DynamoDBv2;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using Amazon.SimpleSystemsManagement;
@@ -24,12 +25,14 @@ builder.Services.AddAWSLambdaHosting(LambdaEventSource.RestApi, new SourceGenera
 
 #region Singleton AWS Services
 builder.Services.AddSingleton<IAmazonSimpleSystemsManagement, AmazonSimpleSystemsManagementClient>();
+builder.Services.AddSingleton<IAmazonDynamoDB, AmazonDynamoDBClient>();
 builder.Services.AddSingleton<IAmazonSQS, AmazonSQSClient>();
 #endregion
 
 #region Singleton Helpers
 builder.Services.AddSingleton<VariableEntornoHelper>();
 builder.Services.AddSingleton<ParameterStoreHelper>();
+builder.Services.AddSingleton<DynamoHelper>();
 #endregion
 
 var app = builder.Build();

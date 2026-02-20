@@ -4,6 +4,7 @@ using Amazon.SQS.Model;
 using ApiRecepcionSolicitudesEnvio.Helpers;
 using ApiRecepcionSolicitudesEnvio.Models;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 
 namespace ApiRecepcionSolicitudesEnvio.Endpoints {
@@ -16,21 +17,38 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
         }
 
         private static IEndpointRouteBuilder MapEnviarEndpoint(this IEndpointRouteBuilder routes) {
-            routes.MapPost("/Enviar", async (Correo correo, IAmazonSQS sqsClient, VariableEntornoHelper variableEntorno, ParameterStoreHelper parameterStore) => {
+            routes.MapPost("/Enviar", async (Correo correo, IAmazonSQS sqsClient, VariableEntornoHelper variableEntorno, DynamoHelper dynamo) => {
                 Stopwatch stopwatch = Stopwatch.StartNew();
 
                 try {
+                    // Se serializa el contenido del mensaje...
                     string jsonCorreo = JsonSerializer.Serialize(correo, AppJsonSerializerContext.Default.Correo);
 
-                    SendMessageRequest request = new() {
-                        QueueUrl = variableEntorno.Obtener("SQS_QUEUE_URL"),
-                        MessageBody = jsonCorreo
-                    };
+                    // Se ingresa a DynamoDB...
+					Dictionary<string, object?>? itemDynamo = new() {
+						["IdMensaje"] = Guid.NewGuid().ToString(),
+						["TipoMensaje"] = "Email",
+						["Estado"] = "Pendiente",
+						["Contenido"] = jsonCorreo,
+						["FechaCreacion"] = DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture),
+					};
+					await dynamo.Insertar(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), itemDynamo);
 
-                    SendMessageResponse response = await sqsClient.SendMessageAsync(request);
-                    Retorno salida = new() { 
-                        QueueMessageId = response.MessageId 
-                    };
+                    // Se ingresa a cola de envío...
+					SendMessageRequest request = new() {
+                        QueueUrl = variableEntorno.Obtener("SQS_QUEUE_URL"),
+                        MessageBody = (string)itemDynamo["IdMensaje"]!
+					};
+					SendMessageResponse response = await sqsClient.SendMessageAsync(request);
+
+                    // Se actualiza el ítem en DynamoDB...
+                    itemDynamo["Estado"] = "InsertadoColaEnvio";
+					itemDynamo.Add("QueueMessageId", response.MessageId);
+					await dynamo.Insertar(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), itemDynamo);
+
+					Retorno salida = new() { 
+                        IdMensaje = (string)itemDynamo["IdMensaje"]!,
+					};
 
                     LambdaLogger.Log(
                         $"[POST] - [/Correo/Enviar] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +

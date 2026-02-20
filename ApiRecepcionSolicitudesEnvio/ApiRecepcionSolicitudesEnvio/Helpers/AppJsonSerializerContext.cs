@@ -12,7 +12,8 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
     [JsonSerializable(typeof(DireccionCorreo))]
     [JsonSerializable(typeof(Adjunto))]
     [JsonSerializable(typeof(Retorno))]
-    internal partial class AppJsonSerializerContext : JsonSerializerContext {
+	[JsonSerializable(typeof(Dictionary<string, object>))]
+	internal partial class AppJsonSerializerContext : JsonSerializerContext {
 
     }
 }
