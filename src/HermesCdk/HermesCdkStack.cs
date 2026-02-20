@@ -7,6 +7,7 @@ using Amazon.CDK.AWS.CertificateManager;
 using Amazon.CDK.AWS.CloudWatch;
 using Amazon.CDK.AWS.CloudWatch.Actions;
 using Amazon.CDK.AWS.Cognito;
+using Amazon.CDK.AWS.DynamoDB;
 using Amazon.CDK.AWS.EC2;
 using Amazon.CDK.AWS.ECS;
 using Amazon.CDK.AWS.IAM;
@@ -24,6 +25,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Attribute = Amazon.CDK.AWS.DynamoDB.Attribute;
 using Secret = Amazon.CDK.AWS.SecretsManager.Secret;
 using StageOptions = Amazon.CDK.AWS.APIGateway.StageOptions;
 using ThrottleSettings = Amazon.CDK.AWS.APIGateway.ThrottleSettings;
@@ -31,8 +33,7 @@ using ThrottleSettings = Amazon.CDK.AWS.APIGateway.ThrottleSettings;
 namespace HermesCdk {
     public class HermesCdkStack : Stack
     {
-        internal HermesCdkStack(Construct scope, string id, IStackProps props = null) : base(scope, id, props)
-        {
+        internal HermesCdkStack(Construct scope, string id, IStackProps props = null) : base(scope, id, props) {
             string appName = System.Environment.GetEnvironmentVariable("APP_NAME") ?? throw new ArgumentNullException("APP_NAME");
             string region = System.Environment.GetEnvironmentVariable("REGION_AWS") ?? throw new ArgumentNullException("REGION_AWS");
 
@@ -107,10 +108,24 @@ namespace HermesCdk {
                 Tier = ParameterTier.STANDARD,
             });
             #endregion
-            
-            #region API Gateway y Lambda
-            // Creación de log group lambda...
-            LogGroup logGroup = new(this, $"{appName}APILogGroup", new LogGroupProps {
+
+            #region DynamoDB
+            // Se crea tabla para registrar los mensajes que se envían...
+            Table tablaMensajes = new(this, $"{appName}DynamoDBTableMensajes", new TableProps {
+                TableName = $"{appName}Mensajes",
+				PartitionKey = new Attribute {
+					Name = "IdMensaje",
+					Type = AttributeType.STRING
+				},
+				DeletionProtection = true,
+				BillingMode = BillingMode.PAY_PER_REQUEST,
+				RemovalPolicy = RemovalPolicy.DESTROY
+			});
+			#endregion
+
+			#region API Gateway y Lambda
+			// Creación de log group lambda...
+			LogGroup logGroup = new(this, $"{appName}APILogGroup", new LogGroupProps {
                 LogGroupName = $"/aws/lambda/{appName}API/logs",
                 Retention = RetentionDays.ONE_MONTH,
                 RemovalPolicy = RemovalPolicy.DESTROY
@@ -147,8 +162,18 @@ namespace HermesCdk {
                                     Resources = [
                                         queue.QueueArn,
                                     ],
-                                })
-                            ]
+                                }),
+								new PolicyStatement(new PolicyStatementProps{
+									Sid = $"{appName}AccessToDynamoDB",
+									Actions = [
+										"dynamodb:PutItem",
+										"dynamodb:GetItem",
+									],
+									Resources = [
+										tablaMensajes.TableArn,
+									],
+								})
+							]
                         })
                     }
                 }
@@ -298,7 +323,17 @@ namespace HermesCdk {
                                         $"*",
                                     ],
                                 }),
-                            ]
+								new PolicyStatement(new PolicyStatementProps{
+									Sid = $"{appName}AccessToDynamoDB",
+									Actions = [
+										"dynamodb:PutItem",
+										"dynamodb:GetItem",
+									],
+									Resources = [
+										tablaMensajes.TableArn,
+									],
+								})
+							]
                         })
                     }
                 }
