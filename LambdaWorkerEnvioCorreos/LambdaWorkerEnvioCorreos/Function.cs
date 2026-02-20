@@ -1,3 +1,4 @@
+using Amazon.DynamoDBv2;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.SQSEvents;
 using Amazon.SimpleEmailV2;
@@ -8,6 +9,7 @@ using LambdaWorkerEnvioCorreos.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using static Amazon.Lambda.SQSEvents.SQSBatchResponse;
@@ -28,14 +30,15 @@ public class Function
             #region Singleton AWS Services
             services.AddSingleton<IAmazonSimpleSystemsManagement, AmazonSimpleSystemsManagementClient>();
             services.AddSingleton<IAmazonSimpleEmailServiceV2, AmazonSimpleEmailServiceV2Client>();
+			services.AddSingleton<IAmazonDynamoDB, AmazonDynamoDBClient>();
 
-            #endregion
+			#endregion
 
-            #region Singleton Helpers
-            services.AddSingleton<VariableEntornoHelper>();
-            services.AddSingleton<ParameterStoreHelper>();
-            #endregion
-        });
+			#region Singleton Helpers
+			services.AddSingleton<VariableEntornoHelper>();
+			services.AddSingleton<DynamoHelper>();
+			#endregion
+		});
 
         var app = builder.Build();
 
@@ -54,8 +57,8 @@ public class Function
             $"Iniciado worker de envio de correos.");
 
         VariableEntornoHelper variableEntorno = serviceProvider.GetRequiredService<VariableEntornoHelper>();
-        ParameterStoreHelper parameterStore = serviceProvider.GetRequiredService<ParameterStoreHelper>();
-        IAmazonSimpleEmailServiceV2 sesClient = serviceProvider.GetRequiredService<IAmazonSimpleEmailServiceV2>();
+		DynamoHelper dynamo = serviceProvider.GetRequiredService<DynamoHelper>();
+		IAmazonSimpleEmailServiceV2 sesClient = serviceProvider.GetRequiredService<IAmazonSimpleEmailServiceV2>();
 
         LambdaLogger.Log(
             $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
@@ -96,7 +99,20 @@ public class Function
 
         foreach (SQSMessage mensaje in evnt.Records) {
             try {
-                Correo correo = JsonSerializer.Deserialize<Correo>(mensaje.Body)!;
+                string idMensaje = mensaje.Body;
+                Dictionary<string, object?> itemDynamo = await dynamo.Obtener(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), new Dictionary<string, object?> {
+                    ["IdMensaje"] = idMensaje
+				}) ?? throw new Exception("No se encontró el mensaje");
+
+                if (!itemDynamo.TryGetValue("Estado", out object? estado) || estado == null || (string)estado != "InsertadoColaEnvio") {
+                    throw new Exception("El estado del mensaje es inválido");
+                }
+
+                if (!itemDynamo.TryGetValue("Contenido", out object? contenido) || contenido == null) {
+                    throw new Exception("El mensaje no incluye un contenido");
+                }
+
+				Correo correo = JsonSerializer.Deserialize<Correo>((string)contenido)!;
                 correo.De ??= direccionDeDefecto;
 
                 List<Attachment>? attachments = null;
@@ -146,7 +162,12 @@ public class Function
                     throw new Exception($"Error al enviar correo [SendEmailResponse - Message ID: {response.MessageId} - HttpStatusCode: {response.HttpStatusCode}]");
                 }
 
-                stopwatchDelay = Stopwatch.StartNew();
+				itemDynamo["Estado"] = "CorreoEnviado";
+				itemDynamo.Add("FechaEnvio", DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture));
+                itemDynamo.Add("SESMessageId", response.MessageId);
+				await dynamo.Insertar(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), itemDynamo);
+
+				stopwatchDelay = Stopwatch.StartNew();
             } catch (Exception ex) {
                 LambdaLogger.Log(LogLevel.Error,
                     $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
