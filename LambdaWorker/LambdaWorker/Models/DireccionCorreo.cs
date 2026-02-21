@@ -1,11 +1,11 @@
-﻿using LambdaWorkerEnvioCorreos.Helpers;
+﻿using LambdaWorker.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LambdaWorkerEnvioCorreos.Models {
+namespace LambdaWorker.Models {
     internal class DireccionCorreo {
         public string? Nombre { get; set; }
         public required string Correo { get; set; }

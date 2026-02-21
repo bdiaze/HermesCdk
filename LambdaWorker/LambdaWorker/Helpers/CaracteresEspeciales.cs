@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace LambdaWorkerEnvioCorreos.Helpers {
+namespace LambdaWorker.Helpers {
     internal static class CaracteresEspeciales {
         public static string Limpiar(string texto) {
             if (string.IsNullOrEmpty(texto)) return string.Empty;

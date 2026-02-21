@@ -38,12 +38,12 @@ If already installed check if new version is available.
 
 Execute unit tests
 ```
-    cd "LambdaWorkerEnvioCorreos/test/LambdaWorkerEnvioCorreos.Tests"
+    cd "LambdaWorker/test/LambdaWorker.Tests"
     dotnet test
 ```
 
 Deploy function to AWS Lambda
 ```
-    cd "LambdaWorkerEnvioCorreos/src/LambdaWorkerEnvioCorreos"
+    cd "LambdaWorker/src/LambdaWorker"
     dotnet lambda deploy-function
 ```

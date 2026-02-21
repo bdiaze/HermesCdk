@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LambdaWorkerEnvioCorreos.Helpers {
+namespace LambdaWorker.Helpers {
     internal class ParameterStoreHelper(IAmazonSimpleSystemsManagement client) {
         private readonly Dictionary<string, string> parametersValues = [];
 

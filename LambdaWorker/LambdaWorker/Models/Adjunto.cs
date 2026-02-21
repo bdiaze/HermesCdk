@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LambdaWorkerEnvioCorreos.Models {
+namespace LambdaWorker.Models {
     internal class Adjunto {
         public required string NombreArchivo { get; set; }
         public required string TipoMime { get; set; }

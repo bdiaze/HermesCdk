@@ -1,7 +1,7 @@
 ﻿using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Amazon.SimpleEmailV2.Model;
-using LambdaWorkerEnvioCorreos.Models;
+using LambdaWorker.Models;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -10,7 +10,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace LambdaWorkerEnvioCorreos.Helpers {
+namespace LambdaWorker.Helpers {
 	internal class DynamoHelper(IAmazonDynamoDB client) {
 		public async Task<Dictionary<string, object?>?> Insertar(string nombreTabla, Dictionary<string, object?> item) {
 			PutItemRequest request = new() {

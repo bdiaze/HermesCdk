@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LambdaWorkerEnvioCorreos.Models {
+namespace LambdaWorker.Models {
     internal class Correo {
         public DireccionCorreo? De { get; set; } = null;
         public required List<DireccionCorreo> Para { get; set; }

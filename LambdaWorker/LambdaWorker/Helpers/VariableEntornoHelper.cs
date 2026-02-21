@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LambdaWorkerEnvioCorreos.Helpers {
+namespace LambdaWorker.Helpers {
     internal class VariableEntornoHelper(IHostEnvironment env, IConfiguration config) {
         public string Obtener(string nombre) {
             if (env.IsDevelopment()) {

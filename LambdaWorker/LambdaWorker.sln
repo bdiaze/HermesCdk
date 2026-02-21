@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36401.2 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LambdaWorkerEnvioCorreos", "LambdaWorkerEnvioCorreos\LambdaWorkerEnvioCorreos.csproj", "{74A1FF7D-E1DF-858B-71B4-B5BC4865A3DF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LambdaWorker", "LambdaWorker\LambdaWorker.csproj", "{74A1FF7D-E1DF-858B-71B4-B5BC4865A3DF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

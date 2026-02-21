@@ -4,8 +4,8 @@ using Amazon.Lambda.SQSEvents;
 using Amazon.SimpleEmailV2;
 using Amazon.SimpleEmailV2.Model;
 using Amazon.SimpleSystemsManagement;
-using LambdaWorkerEnvioCorreos.Helpers;
-using LambdaWorkerEnvioCorreos.Models;
+using LambdaWorker.Helpers;
+using LambdaWorker.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
@@ -18,7 +18,7 @@ using static Amazon.Lambda.SQSEvents.SQSEvent;
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
-namespace LambdaWorkerEnvioCorreos;
+namespace LambdaWorker;
 
 public class Function
 {
