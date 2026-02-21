@@ -37,5 +37,6 @@ builder.Services.AddSingleton<DynamoHelper>();
 var app = builder.Build();
 
 app.MapCorreoEndpoints();
+app.MapWhatsappEndpoints();
 
 app.Run();

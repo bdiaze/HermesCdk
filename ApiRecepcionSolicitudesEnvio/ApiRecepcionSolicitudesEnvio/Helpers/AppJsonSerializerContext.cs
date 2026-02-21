@@ -13,6 +13,7 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
     [JsonSerializable(typeof(Adjunto))]
     [JsonSerializable(typeof(Retorno))]
 	[JsonSerializable(typeof(Dictionary<string, object>))]
+	[JsonSerializable(typeof(Whatsapp))]
 	internal partial class AppJsonSerializerContext : JsonSerializerContext {
 
     }

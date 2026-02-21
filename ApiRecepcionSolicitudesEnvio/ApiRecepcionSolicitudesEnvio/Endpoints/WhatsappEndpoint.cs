@@ -17,7 +17,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 		}
 
 		private static IEndpointRouteBuilder MapEnviarEndpoint(this IEndpointRouteBuilder routes) {
-			routes.MapPost("/Enviar", async (Correo correo, IAmazonSQS sqsClient, VariableEntornoHelper variableEntorno, DynamoHelper dynamo) => {
+			routes.MapPost("/Enviar", async (Whatsapp whatsapp, IAmazonSQS sqsClient, VariableEntornoHelper variableEntorno, DynamoHelper dynamo) => {
 				Stopwatch stopwatch = Stopwatch.StartNew();
 
 				try {
@@ -28,14 +28,14 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 					}
 
 					// Se serializa el contenido del mensaje...
-					string jsonCorreo = JsonSerializer.Serialize(correo, AppJsonSerializerContext.Default.Correo);
+					string jsonContenido = JsonSerializer.Serialize(whatsapp, AppJsonSerializerContext.Default.Whatsapp);
 
 					// Se ingresa a DynamoDB...
 					Dictionary<string, object?>? itemDynamo = new() {
 						["IdMensaje"] = idMensaje,
 						["TipoMensaje"] = "Whatsapp",
 						["Estado"] = "Pendiente",
-						["Contenido"] = jsonCorreo,
+						["Contenido"] = jsonContenido,
 						["FechaCreacion"] = DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture),
 					};
 					await dynamo.Insertar(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), itemDynamo);
