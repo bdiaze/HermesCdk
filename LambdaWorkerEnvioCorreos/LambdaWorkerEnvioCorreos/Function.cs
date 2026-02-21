@@ -50,7 +50,7 @@ public class Function
         List<BatchItemFailure> listaMensajesError = [];
 
         Stopwatch stopwatch = Stopwatch.StartNew();
-        Stopwatch stopwatchDelay = Stopwatch.StartNew();
+        Stopwatch stopwatchDelayCorreos = Stopwatch.StartNew();
 
         LambdaLogger.Log(
             $"[Function] - [FunctionHandler] - " +
@@ -77,21 +77,10 @@ public class Function
             $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
             $"Se obtendra la quota disponible de SES.");
 
-        // Obteniendo límites de SES para configurar cantidad de elementos a extraer de al cola y las esperas entre envíos de correos...
+        // Obteniendo límites de SES para configurar las esperas entre envíos de correos...
         GetAccountResponse accountResponse = await sesClient.GetAccountAsync(new GetAccountRequest());
-        int maxDelayMs = (int)(1000 / accountResponse.SendQuota.MaxSendRate!);
+        int maxDelayMsCorreos = (int)(1000 / accountResponse.SendQuota.MaxSendRate!);
         int cantEmailsDisponibles = (int)(accountResponse.SendQuota.Max24HourSend! - accountResponse.SendQuota.SentLast24Hours!);
-
-        // Si no quedan correos por enviar, se retornan todos los elementos para reprocesar...
-        if (cantEmailsDisponibles == 0) {
-            LambdaLogger.Log(
-            $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
-            $"Ya se uso la capacidad diaria de SES, no se procesarán los mensajes.");
-
-            return new SQSBatchResponse {
-                BatchItemFailures = [.. evnt.Records.Select(r => new BatchItemFailure { ItemIdentifier = r.MessageId })]
-            };
-        }
 
         LambdaLogger.Log(
             $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
@@ -112,62 +101,78 @@ public class Function
                     throw new Exception("El mensaje no incluye un contenido");
                 }
 
-				Correo correo = JsonSerializer.Deserialize<Correo>((string)contenido)!;
-                correo.De ??= direccionDeDefecto;
-
-                List<Attachment>? attachments = null;
-                if (correo.Adjuntos != null && correo.Adjuntos.Count > 0) {
-                    attachments = [];
-                    foreach (Adjunto adjunto in correo.Adjuntos) {
-                        attachments.Add(new Attachment {
-                            FileName = CaracteresEspeciales.Limpiar(adjunto.NombreArchivo),
-                            ContentType = CaracteresEspeciales.Limpiar(adjunto.TipoMime),
-                            RawContent = new MemoryStream(Convert.FromBase64String(CaracteresEspeciales.LimpiarBase64(adjunto.ContenidoBase64)))
-                        });
-                    }
+                if (!itemDynamo.TryGetValue("TipoMensaje", out object? tipoMensaje) || tipoMensaje == null) {
+                    throw new Exception("El mensaje no incluye el tipo de mensaje");
                 }
 
-                SendEmailRequest request = new() {
-                    FromEmailAddress = CaracteresEspeciales.Limpiar(correo.De.ToString()),
-                    Destination = new Destination {
-                        ToAddresses = [.. correo.Para.Select(c => CaracteresEspeciales.Limpiar(c.ToString()))],
-                        CcAddresses = correo.Cc?.Select(c => CaracteresEspeciales.Limpiar(c.ToString())).ToList(),
-                        BccAddresses = correo.Cco?.Select(c => CaracteresEspeciales.Limpiar(c.ToString())).ToList()
-                    },
-                    ReplyToAddresses = correo.ResponderA?.Select(c => CaracteresEspeciales.Limpiar(c.ToString())).ToList(),
-                    Content = new EmailContent {
-                        Simple = new Message {
-                            Subject = new Content {
-                                Charset = "UTF-8",
-                                Data = CaracteresEspeciales.Limpiar(correo.Asunto)
-                            },
-                            Body = new Body {
-                                Html = new Content {
-                                    Charset = "UTF-8",
-                                    Data = CaracteresEspeciales.LimpiarExceptoSaltos(correo.Cuerpo)
-                                }
-                            },
-                            Attachments = attachments
+                switch ((string)tipoMensaje) {
+                    case "Correo":
+                        if (cantEmailsDisponibles <= 0) {
+                            throw new Exception("Ya se uso la capacidad diaria de SES");
                         }
-                    }
-                };
 
-                if (stopwatchDelay.ElapsedMilliseconds < maxDelayMs) {
-                    int delayMs = maxDelayMs - (int)stopwatchDelay.ElapsedMilliseconds;
-                    await Task.Delay(delayMs);
-                }
+						Correo correo = JsonSerializer.Deserialize<Correo>((string)contenido)!;
+						correo.De ??= direccionDeDefecto;
 
-                SendEmailResponse response = await sesClient.SendEmailAsync(request);
-                if (response.HttpStatusCode != HttpStatusCode.OK) {
-                    throw new Exception($"Error al enviar correo [SendEmailResponse - Message ID: {response.MessageId} - HttpStatusCode: {response.HttpStatusCode}]");
-                }
+						List<Attachment>? attachments = null;
+						if (correo.Adjuntos != null && correo.Adjuntos.Count > 0) {
+							attachments = [];
+							foreach (Adjunto adjunto in correo.Adjuntos) {
+								attachments.Add(new Attachment {
+									FileName = CaracteresEspeciales.Limpiar(adjunto.NombreArchivo),
+									ContentType = CaracteresEspeciales.Limpiar(adjunto.TipoMime),
+									RawContent = new MemoryStream(Convert.FromBase64String(CaracteresEspeciales.LimpiarBase64(adjunto.ContenidoBase64)))
+								});
+							}
+						}
 
-				itemDynamo["Estado"] = "CorreoEnviado";
-				itemDynamo.Add("FechaEnvio", DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture));
-                itemDynamo.Add("SESMessageId", response.MessageId);
-				await dynamo.Insertar(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), itemDynamo);
+						SendEmailRequest request = new() {
+							FromEmailAddress = CaracteresEspeciales.Limpiar(correo.De.ToString()),
+							Destination = new Destination {
+								ToAddresses = [.. correo.Para.Select(c => CaracteresEspeciales.Limpiar(c.ToString()))],
+								CcAddresses = correo.Cc?.Select(c => CaracteresEspeciales.Limpiar(c.ToString())).ToList(),
+								BccAddresses = correo.Cco?.Select(c => CaracteresEspeciales.Limpiar(c.ToString())).ToList()
+							},
+							ReplyToAddresses = correo.ResponderA?.Select(c => CaracteresEspeciales.Limpiar(c.ToString())).ToList(),
+							Content = new EmailContent {
+								Simple = new Message {
+									Subject = new Content {
+										Charset = "UTF-8",
+										Data = CaracteresEspeciales.Limpiar(correo.Asunto)
+									},
+									Body = new Body {
+										Html = new Content {
+											Charset = "UTF-8",
+											Data = CaracteresEspeciales.LimpiarExceptoSaltos(correo.Cuerpo)
+										}
+									},
+									Attachments = attachments
+								}
+							}
+						};
 
-				stopwatchDelay = Stopwatch.StartNew();
+						if (stopwatchDelayCorreos.ElapsedMilliseconds < maxDelayMsCorreos) {
+							int delayMs = maxDelayMsCorreos - (int)stopwatchDelayCorreos.ElapsedMilliseconds;
+							await Task.Delay(delayMs);
+						}
+
+						SendEmailResponse response = await sesClient.SendEmailAsync(request);
+						if (response.HttpStatusCode != HttpStatusCode.OK) {
+							throw new Exception($"Error al enviar correo [SendEmailResponse - Message ID: {response.MessageId} - HttpStatusCode: {response.HttpStatusCode}]");
+						}
+
+                        cantEmailsDisponibles--;
+						stopwatchDelayCorreos = Stopwatch.StartNew();
+
+						itemDynamo["Estado"] = "CorreoEnviado";
+						itemDynamo.Add("FechaEnvio", DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture));
+						itemDynamo.Add("SESMessageId", response.MessageId);
+						await dynamo.Insertar(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), itemDynamo);
+
+						break;
+                    default:
+                        throw new Exception("Tipo de mensaje no soportado");
+				}
             } catch (Exception ex) {
                 LambdaLogger.Log(LogLevel.Error,
                     $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
