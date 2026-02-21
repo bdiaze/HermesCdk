@@ -49,7 +49,8 @@ namespace HermesCdk {
 
             string workerDirectory = System.Environment.GetEnvironmentVariable("WORKER_DIRECTORY") ?? throw new ArgumentNullException("WORKER_DIRECTORY");
             string workerLambdaHandler = System.Environment.GetEnvironmentVariable("WORKER_LAMBDA_HANDLER") ?? throw new ArgumentNullException("WORKER_LAMBDA_HANDLER");
-            string workerLambdaMemorySize = System.Environment.GetEnvironmentVariable("WORKER_LAMBDA_MEMORY_SIZE") ?? throw new ArgumentNullException("WORKER_LAMBDA_MEMORY_SIZE");
+			string workerLambdaHandlerWhatsapp = System.Environment.GetEnvironmentVariable("WORKER_LAMBDA_HANDLER_WHATSAPP") ?? throw new ArgumentNullException("WORKER_LAMBDA_HANDLER_WHATSAPP");
+			string workerLambdaMemorySize = System.Environment.GetEnvironmentVariable("WORKER_LAMBDA_MEMORY_SIZE") ?? throw new ArgumentNullException("WORKER_LAMBDA_MEMORY_SIZE");
             string workerLambdaTimeout = System.Environment.GetEnvironmentVariable("WORKER_LAMBDA_TIMEOUT") ?? throw new ArgumentNullException("WORKER_LAMBDA_TIMEOUT");
 
             string notificationEmails = System.Environment.GetEnvironmentVariable("NOTIFICATION_EMAILS") ?? throw new ArgumentNullException("NOTIFICATION_EMAILS");
@@ -67,28 +68,45 @@ namespace HermesCdk {
 
             #region SQS
             // Creación de cola...
-            Queue dlq = new(this, $"{appName}DeadLetterQueue", new QueueProps {
-                QueueName = $"{appName}DeadLetterQueue",
+            Queue dlqEmail = new(this, $"{appName}DeadLetterQueue", new QueueProps {
+                QueueName = $"{appName}EmailDeadLetterQueue",
                 RetentionPeriod = Duration.Days(14),
                 EnforceSSL = true,
             });
 
-            Queue queue = new(this, $"{appName}Queue", new QueueProps {
-                QueueName = $"{appName}Queue",
+            Queue queueEmail = new(this, $"{appName}Queue", new QueueProps {
+                QueueName = $"{appName}EmailQueue",
                 RetentionPeriod = Duration.Days(14),
                 VisibilityTimeout = Duration.Seconds(Math.Round(double.Parse(workerLambdaTimeout) * 1.5)),
                 EnforceSSL = true,
                 DeadLetterQueue = new DeadLetterQueue {
-                    Queue = dlq,
+                    Queue = dlqEmail,
                     MaxReceiveCount = 3,
                 },
             });
 
-            // Se crea alarma para enviar notificación cuando llegue un elemento al DLQ...
-            Alarm alarm = new(this, $"{appName}DeadLetterQueueAlarm", new AlarmProps {
-                AlarmName = $"{appName}DeadLetterQueueAlarm",
-                AlarmDescription = $"Alarma para notificar cuando llega algun elemento a la DLQ de {appName}",
-                Metric = dlq.MetricApproximateNumberOfMessagesVisible(new MetricOptions {
+			Queue dlqWhatsapp = new(this, $"{appName}WhatsappDeadLetterQueue", new QueueProps {
+				QueueName = $"{appName}WhatsappDeadLetterQueue",
+				RetentionPeriod = Duration.Days(14),
+				EnforceSSL = true,
+			});
+
+			Queue queueWhatsapp = new(this, $"{appName}WhatsappQueue", new QueueProps {
+				QueueName = $"{appName}WhatsappQueue",
+				RetentionPeriod = Duration.Days(14),
+				VisibilityTimeout = Duration.Seconds(Math.Round(double.Parse(workerLambdaTimeout) * 1.5)),
+				EnforceSSL = true,
+				DeadLetterQueue = new DeadLetterQueue {
+					Queue = dlqWhatsapp,
+					MaxReceiveCount = 3,
+				},
+			});
+
+			// Se crea alarma para enviar notificación cuando llegue un elemento al DLQ...
+			Alarm alarmEmail = new(this, $"{appName}DeadLetterQueueAlarm", new AlarmProps {
+                AlarmName = $"{appName}EmailDeadLetterQueueAlarm",
+                AlarmDescription = $"Alarma para notificar cuando llega algun email a la DLQ de {appName}",
+                Metric = dlqEmail.MetricApproximateNumberOfMessagesVisible(new MetricOptions {
                     Period = Duration.Minutes(5),
                     Statistic = Stats.MAXIMUM,
                 }),
@@ -98,12 +116,27 @@ namespace HermesCdk {
                 ComparisonOperator = ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
                 TreatMissingData = TreatMissingData.NOT_BREACHING,
             });
-            alarm.AddAlarmAction(new SnsAction(topic));
-            #endregion
+			alarmEmail.AddAlarmAction(new SnsAction(topic));
 
-            #region DynamoDB
-            // Se crea tabla para registrar los mensajes que se envían...
-            Table tablaMensajes = new(this, $"{appName}DynamoDBTableMensajes", new TableProps {
+			Alarm alarmWhatsapp = new(this, $"{appName}DeadLetterQueueAlarm", new AlarmProps {
+				AlarmName = $"{appName}WhatsappDeadLetterQueueAlarm",
+				AlarmDescription = $"Alarma para notificar cuando llega algun mensaje de Whatsapp a la DLQ de {appName}",
+				Metric = dlqWhatsapp.MetricApproximateNumberOfMessagesVisible(new MetricOptions {
+					Period = Duration.Minutes(5),
+					Statistic = Stats.MAXIMUM,
+				}),
+				Threshold = 1,
+				EvaluationPeriods = 1,
+				DatapointsToAlarm = 1,
+				ComparisonOperator = ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+				TreatMissingData = TreatMissingData.NOT_BREACHING,
+			});
+			alarmWhatsapp.AddAlarmAction(new SnsAction(topic));
+			#endregion
+
+			#region DynamoDB
+			// Se crea tabla para registrar los mensajes que se envían...
+			Table tablaMensajes = new(this, $"{appName}DynamoDBTableMensajes", new TableProps {
                 TableName = $"{appName}Mensajes",
 				PartitionKey = new Attribute {
 					Name = "IdMensaje",
@@ -143,7 +176,8 @@ namespace HermesCdk {
                                         "sqs:SendMessage"
                                     ],
                                     Resources = [
-                                        queue.QueueArn,
+                                        queueEmail.QueueArn,
+										queueWhatsapp.QueueArn,
                                     ],
                                 }),
 								new PolicyStatement(new PolicyStatementProps{
@@ -175,7 +209,8 @@ namespace HermesCdk {
                 LogGroup = logGroup,
                 Environment = new Dictionary<string, string> {
                     { "APP_NAME", appName },
-					{ "SQS_QUEUE_URL", queue.QueueUrl },
+					{ "EMAIL_SQS_QUEUE_URL", queueEmail.QueueUrl },
+					{ "WHATSAPP_SQS_QUEUE_URL", queueWhatsapp.QueueUrl },
 					{ "DYNAMODB_TABLE_NAME", tablaMensajes.TableName }
 				},
                 Role = roleLambda,
@@ -304,8 +339,8 @@ namespace HermesCdk {
                 }
             });
 
-            // Creación de la función lambda...
-            Function workerFunction = new(this, $"{appName}WorkerLambdaFunction", new FunctionProps {
+            // Creación de la función lambda para procesar emails...
+            Function workerFunctionEmail = new(this, $"{appName}WorkerLambdaFunction", new FunctionProps {
                 FunctionName = $"{appName}WorkerEnvioCorreo",
                 Description = $"Funcion worker encargada de enviar correos desde la cola de la aplicacion {appName}",
                 Runtime = Runtime.DOTNET_8,
@@ -325,11 +360,38 @@ namespace HermesCdk {
                 ReservedConcurrentExecutions = 1
             });
 
-            workerFunction.AddEventSource(new SqsEventSource(queue, new SqsEventSourceProps {
+			// Creación de la función lambda para procesar mensajes de Whatsapp...
+			Function workerFunctionWhatsapp = new(this, $"{appName}WorkerLambdaFunctionWhatsapp", new FunctionProps {
+				FunctionName = $"{appName}WorkerEnvioWhatsapp",
+				Description = $"Funcion worker encargada de enviar mensajes de Whatsapp desde la cola de la aplicacion {appName}",
+				Runtime = Runtime.DOTNET_8,
+				Handler = workerLambdaHandlerWhatsapp,
+				Code = Code.FromAsset($"{workerDirectory}/publish/publish.zip"),
+				Timeout = Duration.Seconds(double.Parse(workerLambdaTimeout)),
+				MemorySize = double.Parse(workerLambdaMemorySize),
+				Architecture = Architecture.X86_64,
+				LogGroup = workerLogGroup,
+				Environment = new Dictionary<string, string> {
+					{ "APP_NAME", appName },
+					{ "SES_NOMBRE_DE_DEFECTO", nombreDeDefecto },
+					{ "SES_CORREO_DE_DEFECTO", correoDeDefecto },
+					{ "DYNAMODB_TABLE_NAME", tablaMensajes.TableName },
+				},
+				Role = roleWorkerLambda,
+				ReservedConcurrentExecutions = 1
+			});
+
+			workerFunctionEmail.AddEventSource(new SqsEventSource(queueEmail, new SqsEventSourceProps {
                 Enabled = true,
                 ReportBatchItemFailures = true,
             }));
-            #endregion
-        }
+
+			workerFunctionWhatsapp.AddEventSource(new SqsEventSource(queueWhatsapp, new SqsEventSourceProps {
+				Enabled = true,
+				ReportBatchItemFailures = true,
+			}));
+
+			#endregion
+		}
     }
 }

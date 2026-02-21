@@ -42,7 +42,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 
                     // Se ingresa a cola de envío...
 					SendMessageRequest request = new() {
-                        QueueUrl = variableEntorno.Obtener("SQS_QUEUE_URL"),
+                        QueueUrl = variableEntorno.Obtener("EMAIL_SQS_QUEUE_URL"),
                         MessageBody = (string)itemDynamo["IdMensaje"]!
 					};
 					SendMessageResponse response = await sqsClient.SendMessageAsync(request);
