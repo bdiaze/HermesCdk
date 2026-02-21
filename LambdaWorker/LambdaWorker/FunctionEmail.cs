@@ -15,16 +15,13 @@ using System.Text.Json;
 using static Amazon.Lambda.SQSEvents.SQSBatchResponse;
 using static Amazon.Lambda.SQSEvents.SQSEvent;
 
-// Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
-[assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
-
 namespace LambdaWorker;
 
-public class Function
+public class FunctionEmail
 {
     private readonly IServiceProvider serviceProvider;
 
-    public Function() {
+    public FunctionEmail() {
         var builder = Host.CreateDefaultBuilder();
         builder.ConfigureServices((context, services) => {
             #region Singleton AWS Services
