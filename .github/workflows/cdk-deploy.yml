@@ -29,6 +29,7 @@ jobs:
             
             WORKER_DIRECTORY: ${{ vars.WORKER_DIRECTORY }}
             WORKER_LAMBDA_HANDLER: ${{ vars.WORKER_LAMBDA_HANDLER }}
+            WORKER_LAMBDA_HANDLER_WHATSAPP: ${{ vars.WORKER_LAMBDA_HANDLER_WHATSAPP }}
             WORKER_LAMBDA_MEMORY_SIZE: ${{ vars.WORKER_LAMBDA_MEMORY_SIZE }}
             WORKER_LAMBDA_TIMEOUT: ${{ vars.WORKER_LAMBDA_TIMEOUT }}
                         
