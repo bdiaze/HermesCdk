@@ -106,7 +106,7 @@ public class Function
                 }
 
                 switch ((string)tipoMensaje) {
-                    case "Correo":
+                    case "Email":
                         if (cantEmailsDisponibles <= 0) {
                             throw new Exception("Ya se uso la capacidad diaria de SES");
                         }
