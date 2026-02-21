@@ -6,13 +6,14 @@
   - [Recursos Requeridos](#recursos-requeridos)
     - [API Gateway Custom Domain Name](#api-gateway-custom-domain-name)
     - [SES](#ses)
+    - [Whatsapp Business Platform](#whatsapp-business-platform)
   - [Recursos Creados](#recursos-creados)
     - [Sistema de Notificaciones](#sistema-de-notificaciones)
       - [SNS Topic y Subscriptions](#sns-topic-y-subscriptions)
     - [Sistema de Colas](#sistema-de-colas)
       - [SQS Queue y Dead Letter Queue](#sqs-queue-y-dead-letter-queue)
       - [CloudWatch Alarm](#cloudwatch-alarm)
-      - [Systems Manager String Parameter](#systems-manager-string-parameter)
+      - [Tabla DynamoDB](#tabla-dynamodb)
     - [API Recepcion Solicitudes Envio](#api-recepcion-solicitudes-envio)
       - [Log Group e IAM Role](#log-group-e-iam-role)
       - [Lambda Function](#lambda-function)
@@ -21,9 +22,8 @@
       - [API Mapping](#api-mapping)
       - [Usage Plan y API Key](#usage-plan-y-api-key)
       - [API Gateway Permission](#api-gateway-permission)
-      - [Systems Manager String Parameter](#systems-manager-string-parameter-1)
+      - [Systems Manager String Parameter](#systems-manager-string-parameter)
     - [Lambda Worker Envio Correos](#lambda-worker-envio-correos)
-      - [Systems Manager String Parameter](#systems-manager-string-parameter-2)
       - [Log Group e IAM Role](#log-group-e-iam-role-1)
       - [Lambda Function (con Event Source)](#lambda-function-con-event-source)
   - [Lógica de Lambdas](#lógica-de-lambdas)
@@ -37,10 +37,10 @@
 
 ## Introducción
 
-* Hermes es una herramienta para el envío masivo de correos.
-* El siguiente repositorio es para desplegar Hermes, lo que incluye la creación de [Lambdas](https://aws.amazon.com/es/lambda/), [API Gateway](https://aws.amazon.com/es/api-gateway/), [SQS Queues](https://aws.amazon.com/es/sqs/), [CloudWatch Alarms](https://aws.amazon.com/es/cloudwatch/), [SNS Topics](https://aws.amazon.com/es/sns/).
-* La infraestructura se despliega mediante IaC, usando [AWS CDK en .NET 8.0](https://docs.aws.amazon.com/cdk/api/v2/dotnet/api/).
-* El despliegue CI/CD se lleva a cabo mediante  [GitHub Actions](https://github.com/features/actions).
+- Hermes es una herramienta para el envío masivo de correos y mensajes de Whatsapp.
+- El siguiente repositorio es para desplegar Hermes, lo que incluye la creación de [Lambdas](https://aws.amazon.com/es/lambda/), [API Gateway](https://aws.amazon.com/es/api-gateway/), [SQS Queues](https://aws.amazon.com/es/sqs/), [CloudWatch Alarms](https://aws.amazon.com/es/cloudwatch/), [SNS Topics](https://aws.amazon.com/es/sns/) y [DynamoDB Tables](https://aws.amazon.com/es/dynamodb/).
+- La infraestructura se despliega mediante IaC, usando [AWS CDK en .NET 8.0](https://docs.aws.amazon.com/cdk/api/v2/dotnet/api/).
+- El despliegue CI/CD se lleva a cabo mediante [GitHub Actions](https://github.com/features/actions).
 
 ### Diagrama Arquitectura
 
@@ -93,6 +93,12 @@ if (response.HttpStatusCode != HttpStatusCode.OK) {
 
 Para ver un ejemplo de como crear un SES Identity: [BDiazESimpleEmailServiceCdk](https://github.com/bdiaze/BDiazESimpleEmailServiceCdk)
 
+### Whatsapp Business Platform
+
+También es necesario contar con WhatsApp Business Platform habilitado, esto debe incluir templates aprobados y access tokens generados por parte de Meta.
+
+Para ver la documentación oficial de WhatsApp Business Platform: [WhatsApp Business Platform](https://developers.facebook.com/documentation/business-messaging/whatsapp/overview)
+
 ## Recursos Creados
 
 ### Sistema de Notificaciones
@@ -102,7 +108,6 @@ En primer lugar, se creará un sistema a usar para notificar eventos de interés
 #### SNS Topic y Subscriptions
 
 El sistema consiste en un SNS Topic con email subscriptions.
-
 
 <ins>Código para crear SNS Topic con Email Subscriptions:</ins>
 
@@ -122,11 +127,11 @@ foreach (string email in notificationEmails.Split(",")) {
 
 ### Sistema de Colas
 
-Como parte de la solución, se cuenta con un sistema de colas para no saturar al servicio SES de AWS, el cual cuenta con una capacidad máxima de envío de correos por segundo.
+Como parte de la solución, se cuenta con un sistema de colas para no saturar los servicio SES de AWS, el cual cuenta con una capacidad máxima de envío de correos por segundo, y WhatsApp Business Platform de Meta.
 
 #### SQS Queue y Dead Letter Queue
 
-Primero se creará la cola que almacenerá los correos a enviar y que tiene como objetivo no saturar al servicio SES.
+Primero se creará la cola que almacenerá los mensajes a enviar y que tiene como objetivo no saturar al servicio SES ni al servicio WhatsApp Business Platform.
 
 <ins>Código para crear SQS Queue y DLQ:</ins>
 
@@ -153,7 +158,7 @@ Queue queue = new(this, ..., new QueueProps {
 ```
 
 > [!NOTE]
-> Como se puede observar en el código de anterior, primero se crea la DLQ (Dead Letter Queue) y posteriormente se crea la Queue que almacenerá los correos a enviar. La DLQ se usará para almacenar los correos fallido para su posterior manejo.
+> Como se puede observar en el código de anterior, primero se crea la DLQ (Dead Letter Queue) y posteriormente se crea la Queue que almacenerá los correos a enviar. La DLQ se usará para almacenar los mensajes fallido para su posterior manejo.
 
 #### CloudWatch Alarm
 
@@ -182,19 +187,26 @@ Alarm alarm = new(this, ..., new AlarmProps {
 alarm.AddAlarmAction(new SnsAction(topic));
 ```
 
-#### Systems Manager String Parameter
+#### Tabla DynamoDB
 
-Por último, se crea un String Parameter que contendrá la URL de la Queue donde se dejarán los correos a enviar. Esta URL será usada en la API de recepción de solicitudes de envío.
+También, se creará una tabla en DynamoDB para almacenar los mensajes a procesar y administrar la ejecución del envío de estos.
 
-<ins>Código para crear String Parameter</ins>
+<ins>Código para crear DynamoDB Table</ins>
 
 ```csharp
-using Amazon.CDK.AWS.SSM;
-StringParameter stringParameterQueueUrl = new(this, ..., new StringParameterProps {
-    ParameterName = $"/{...}/SQS/QueueUrl",
-    Description = ...,
-    StringValue = queue.QueueUrl,
-    Tier = ParameterTier.STANDARD,
+using Amazon.CDK.AWS.DynamoDB;
+using Attribute = Amazon.CDK.AWS.DynamoDB.Attribute;
+
+// Se crea tabla para registrar los mensajes que se envían...
+Table tablaMensajes = new(this, ..., new TableProps {
+    TableName = ...,
+	PartitionKey = new Attribute {
+		Name = ...,
+		Type = AttributeType.STRING
+	},
+	DeletionProtection = true,
+	BillingMode = BillingMode.PAY_PER_REQUEST,
+	RemovalPolicy = RemovalPolicy.DESTROY
 });
 ```
 
@@ -213,7 +225,7 @@ using Amazon.CDK.AWS.CloudWatch;
 using Amazon.CDK.AWS.IAM;
 
 // Creación de log group lambda...
-LogGroup logGroup = new(this, ..., new LogGroupProps { 
+LogGroup logGroup = new(this, ..., new LogGroupProps {
     LogGroupName = $"/aws/lambda/{...}APILambdaFunction/logs",
     RemovalPolicy = RemovalPolicy.DESTROY
 });
@@ -235,7 +247,7 @@ IRole roleLambda = new Role(this, ..., new RoleProps {
                     new PolicyStatement(new PolicyStatementProps{
                         Sid = ...,
                         Actions = [
-                            "ssm:GetParameter"
+                            "sqs:SendMessage"
                         ],
                         Resources = [
                             ...,
@@ -244,7 +256,8 @@ IRole roleLambda = new Role(this, ..., new RoleProps {
                     new PolicyStatement(new PolicyStatementProps{
                         Sid = ...,
                         Actions = [
-                            "sqs:SendMessage"
+                            "dynamodb:PutItem",
+                            "dynamodb:GetItem",
                         ],
                         Resources = [
                             ...,
@@ -258,7 +271,7 @@ IRole roleLambda = new Role(this, ..., new RoleProps {
 ```
 
 > [!NOTE]
-> Destacar como el Role de la Lambda requiere acceso al [String Parameter creado anteriormente](#systems-manager-string-parameter) (que contiene la URL de la Queue donde se dejarán los emails a enviar), además requiere acceso para dejar mensajes en esa misma Queue.
+> Destacar como el Role de la Lambda requiere acceso para dejar mensajes en la [Queue creada anteriormente](#sqs-queue-y-dead-letter-queue), además de acceso para insertar y obtener items desde la [tabla de DynamoDB](#tabla-dynamodb).
 
 #### Lambda Function
 
@@ -282,7 +295,8 @@ Function function = new(this, ..., new FunctionProps {
     LogGroup = logGroup,
     Environment = new Dictionary<string, string> {
         { "APP_NAME", ... },
-        { "PARAMETER_ARN_SQS_QUEUE_URL", ... },
+        { "SQS_QUEUE_URL", ... },
+        { "DYNAMODB_TABLE_NAME", ... }
     },
     Role = roleLambda,
 });
@@ -326,7 +340,7 @@ LambdaRestApi lambdaRestApi = new(this, ..., new LambdaRestApiProps {
         Description = ...,
     },
     DefaultMethodOptions = new MethodOptions {
-        ApiKeyRequired = true,                   
+        ApiKeyRequired = true,
     },
 });
 ```
@@ -431,26 +445,6 @@ _ = new StringParameter(this, ..., new StringParameterProps {
 
 En tercer lugar, se creará una Lambda cuyo trabajo será procesar los [mensajes de la cola](#sqs-queue-y-dead-letter-queue) y enviar los correos respectivos.
 
-#### Systems Manager String Parameter
-
-Se comenzará creando un String Parameter que contendrá los valores por defecto para el remitente de los correos.
-
-<ins>Código para crear String Parameter:</ins>
-
-```csharp
-using Amazon.CDK.AWS.SSM;
-
-StringParameter stringParameterDireccionDeDefecto = new(this, ..., new StringParameterProps {
-    ParameterName = $"/{...}/SES/DireccionDeDefecto",
-    Description = ...,
-    StringValue = JsonConvert.SerializeObject(new {
-        Nombre = ...,
-        Correo = ...
-    }),
-    Tier = ParameterTier.STANDARD,
-});
-```
-
 #### Log Group e IAM Role
 
 Se crea Log Group e IAM Role para Lambda Worker.
@@ -483,15 +477,6 @@ Role roleWorkerLambda = new(this, ..., new RoleProps {
                     new PolicyStatement(new PolicyStatementProps{
                         Sid = ...,
                         Actions = [
-                            "ssm:GetParameter"
-                        ],
-                        Resources = [
-                            ...,
-                        ],
-                    }),
-                    new PolicyStatement(new PolicyStatementProps{
-                        Sid = ...,
-                        Actions = [
                             "ses:SendEmail",
                             "ses:GetAccount"
                         ],
@@ -499,14 +484,25 @@ Role roleWorkerLambda = new(this, ..., new RoleProps {
                             $"*",
                         ],
                     }),
+                    new PolicyStatement(new PolicyStatementProps{
+                        Sid = ...,
+                        Actions = [
+                            "dynamodb:PutItem",
+                            "dynamodb:GetItem",
+                        ],
+                        Resources = [
+                            ...,
+                        ],
+                    })
                 ]
             })
         }
     }
 });
 ```
+
 > [!NOTE]
-> Se destaca que el Role requiere acceso al [String Parameter creado anteriormente](#systems-manager-string-parameter-2) y acceso para enviar correos y obtener quota de SES.
+> Se destaca que el Role requiere acceso para enviar correos y obtener quota de SES, además de acceso para insertar y obtener items desde la tabla DynamoDB.
 
 #### Lambda Function (con Event Source)
 
@@ -531,6 +527,9 @@ Function workerFunction = new(this, ..., new FunctionProps {
     LogGroup = ...,
     Environment = new Dictionary<string, string> {
         { "APP_NAME", ... },
+        { "SES_NOMBRE_DE_DEFECTO", ... },
+        { "SES_CORREO_DE_DEFECTO", ... },
+        { "DYNAMODB_TABLE_NAME", ... },
     },
     Role = ...,
     ReservedConcurrentExecutions = 1
@@ -551,6 +550,7 @@ workerFunction.AddEventSource(new SqsEventSource(..., new SqsEventSourceProps {
 El principal proposito de la API es recepcionar la información del correo que se desea enviar y direccionar a la cola de procesamiento. Por este motivo la API solo contiene un endpoint:
 
 #### Endpoint
+
 <table>
 <tr>
 <th>URL</th>
@@ -618,7 +618,7 @@ El principal proposito de la API es recepcionar la información del correo que s
 
 ```json
 {
-    "queueMessageId": "..."
+  "idMensaje": "..."
 }
 ```
 
@@ -634,15 +634,41 @@ correoApi.MapPost("/Enviar", async (Correo correo, IAmazonSQS sqsClient, IConfig
     Stopwatch stopwatch = Stopwatch.StartNew();
 
     try {
-        string jsonCorreo = JsonSerializer.Serialize(correo, typeof(Correo), AppJsonSerializerContext.Default);
+        // Se genera un ID único...
+        string idMensaje = Guid.NewGuid().ToString();
+        while ((await dynamo.Obtener(..., new Dictionary<string, object?> { ["IdMensaje"] = idMensaje })) != null) {
+			idMensaje = Guid.NewGuid().ToString();
+        }
 
+        // Se serializa el contenido del mensaje...
+        string jsonCorreo = JsonSerializer.Serialize(correo, AppJsonSerializerContext.Default.Correo);
+
+        // Se ingresa a DynamoDB...
+        Dictionary<string, object?>? itemDynamo = new() {
+            ["IdMensaje"] = idMensaje,
+            ["TipoMensaje"] = "Email",
+            ["Estado"] = "Pendiente",
+            ["Contenido"] = jsonCorreo,
+            ["FechaCreacion"] = DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture),
+        };
+        await dynamo.Insertar(..., itemDynamo);
+
+        // Se deja mensaje en la cola...
         SendMessageRequest request = new() {
             QueueUrl = ...,
-            MessageBody = jsonCorreo
+            MessageBody = (string)itemDynamo["IdMensaje"]!
         };
-
         SendMessageResponse response = await sqsClient.SendMessageAsync(request);
-        Retorno salida = new(response.MessageId);
+
+        // Se actualiza el ítem en DynamoDB...
+        itemDynamo["Estado"] = "InsertadoColaEnvio";
+        itemDynamo.Add("QueueMessageId", response.MessageId);
+        await dynamo.Insertar(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), itemDynamo);
+
+
+        Retorno salida = new() {
+            IdMensaje = (string)itemDynamo["IdMensaje"]!,
+        };
 
         return Results.Ok(salida);
     } catch(Exception ex) {
@@ -666,11 +692,14 @@ public async Task<SQSBatchResponse> FunctionHandler(SQSEvent evnt, ILambdaContex
     Stopwatch stopwatchDelay = Stopwatch.StartNew();
 
     VariableEntornoHelper variableEntorno = ...;
-    ParameterStoreHelper parameterStore = ...;
+    DynamoHelper dynamo = ...;
     IAmazonSimpleEmailServiceV2 sesClient = ...;
 
     // Obteniendo dirección de correos por defecto a usar como remitente...
-    DireccionCorreo direccionDeDefecto = JsonSerializer.Deserialize<DireccionCorreo>(await parameterStore.ObtenerParametro($"/{...}/SES/DireccionDeDefecto"))!;
+    DireccionCorreo direccionDeDefecto = new() {
+        Nombre = ...,
+        Correo = ...,
+    };
 
     // Obteniendo límites de SES para configurar cantidad de elementos a extraer de al cola y las esperas entre envíos de correos...
     GetAccountResponse accountResponse = await sesClient.GetAccountAsync(new GetAccountRequest());
@@ -686,7 +715,20 @@ public async Task<SQSBatchResponse> FunctionHandler(SQSEvent evnt, ILambdaContex
 
     foreach (SQSMessage mensaje in evnt.Records) {
         try {
-            Correo correo = JsonSerializer.Deserialize<Correo>(mensaje.Body)!;
+            string idMensaje = mensaje.Body;
+            Dictionary<string, object?> itemDynamo = await dynamo.Obtener(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), new Dictionary<string, object?> {
+                ["IdMensaje"] = idMensaje
+            }) ?? throw new Exception("No se encontró el mensaje");
+
+            if (!itemDynamo.TryGetValue("Estado", out object? estado) || estado == null || (string)estado != "InsertadoColaEnvio") {
+                throw new Exception("El estado del mensaje es inválido");
+            }
+
+            if (!itemDynamo.TryGetValue("Contenido", out object? contenido) || contenido == null) {
+                throw new Exception("El mensaje no incluye un contenido");
+            }
+
+            Correo correo = JsonSerializer.Deserialize<Correo>((string)contenido)!;
             correo.De ??= direccionDeDefecto;
 
             List<Attachment>? attachments = null;
@@ -714,6 +756,11 @@ public async Task<SQSBatchResponse> FunctionHandler(SQSEvent evnt, ILambdaContex
                 throw new Exception(...);
             }
 
+            itemDynamo["Estado"] = "CorreoEnviado";
+            itemDynamo.Add("FechaEnvio", DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture));
+            itemDynamo.Add("SESMessageId", response.MessageId);
+            await dynamo.Insertar(..., itemDynamo);
+
             stopwatchDelay = Stopwatch.StartNew();
         } catch (Exception ex) {
             listaMensajesError.Add(new BatchItemFailure {
@@ -732,43 +779,43 @@ public async Task<SQSBatchResponse> FunctionHandler(SQSEvent evnt, ILambdaContex
 
 El despliegue se lleva a cabo mediante GitHub Actions, para ello se configura la receta de despliegue con los siguientes pasos:
 
-| Paso | Comando | Descripción |
-|------|---------|-------------|
-| Checkout Repositorio | `actions/checkout@v4` | Se descarga el repositorio en runner. |
-| Instalar .NET | `actions/setup-dotnet@v4` | Se instala .NET en el runner. |
-| Instalar Node.js | `actions/setup-node@v4` | Se instala Node.js en el runner. | 
-| Instalar AWS CDK | `npm install -g aws-cdk` | Se instala aws-cdk con NPM. |
-| Publish .NET AoT Minimal API | `docker run --rm -v ...:/src -w /src .../amazonlinux:2023 \bash -c "`<br> `yum install -y dotnet-sdk-8.0 gcc zlib-devel &&`<br> `dotnet publish /p:PublishAot=true -r linux-x64 --self-contained &&`<br> `cd ./publish &&`<br> `zip -r -T ./publish.zip ./*"`| Se publica y comprime el proyecto de la API AoT.<br> Por ser AoT, se publica usando docker con la imagen de Amazon Linux 2023. |
-| Publish .NET Lambda | `dotnet publish /p:PublishReadyToRun=true -r linux-x64 --no-self-contained` | Se publica el proyecto de la Lambda Worker |
-| Compress Publish Directory .NET Lambda | `zip -r -T ./publish.zip ./*` | Se comprime la publicación de la Lambda Worker |
-| Configure AWS Credentials | `aws-actions/configure-aws-credentials` | Se configuran credenciales para despliegue en AWS. |
-| CDK Synth | `cdk synth` | Se sintetiza la aplicación CDK. |
-| CDK Diff | `cdk --app cdk.out diff` | Se obtienen las diferencias entre nueva versión y versión desplegada. |
-| CDK Deploy | `cdk --app cdk.out deploy --require-approval never` | Se despliega la aplicación CDK. |
+| Paso                                   | Comando                                                                                                                                                                                                                                                       | Descripción                                                                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Checkout Repositorio                   | `actions/checkout@v4`                                                                                                                                                                                                                                         | Se descarga el repositorio en runner.                                                                                          |
+| Instalar .NET                          | `actions/setup-dotnet@v4`                                                                                                                                                                                                                                     | Se instala .NET en el runner.                                                                                                  |
+| Instalar Node.js                       | `actions/setup-node@v4`                                                                                                                                                                                                                                       | Se instala Node.js en el runner.                                                                                               |
+| Instalar AWS CDK                       | `npm install -g aws-cdk`                                                                                                                                                                                                                                      | Se instala aws-cdk con NPM.                                                                                                    |
+| Publish .NET AoT Minimal API           | `docker run --rm -v ...:/src -w /src .../amazonlinux:2023 \bash -c "`<br> `yum install -y dotnet-sdk-8.0 gcc zlib-devel &&`<br> `dotnet publish /p:PublishAot=true -r linux-x64 --self-contained &&`<br> `cd ./publish &&`<br> `zip -r -T ./publish.zip ./*"` | Se publica y comprime el proyecto de la API AoT.<br> Por ser AoT, se publica usando docker con la imagen de Amazon Linux 2023. |
+| Publish .NET Lambda                    | `dotnet publish /p:PublishReadyToRun=true -r linux-x64 --no-self-contained`                                                                                                                                                                                   | Se publica el proyecto de la Lambda Worker                                                                                     |
+| Compress Publish Directory .NET Lambda | `zip -r -T ./publish.zip ./*`                                                                                                                                                                                                                                 | Se comprime la publicación de la Lambda Worker                                                                                 |
+| Configure AWS Credentials              | `aws-actions/configure-aws-credentials`                                                                                                                                                                                                                       | Se configuran credenciales para despliegue en AWS.                                                                             |
+| CDK Synth                              | `cdk synth`                                                                                                                                                                                                                                                   | Se sintetiza la aplicación CDK.                                                                                                |
+| CDK Diff                               | `cdk --app cdk.out diff`                                                                                                                                                                                                                                      | Se obtienen las diferencias entre nueva versión y versión desplegada.                                                          |
+| CDK Deploy                             | `cdk --app cdk.out deploy --require-approval never`                                                                                                                                                                                                           | Se despliega la aplicación CDK.                                                                                                |
 
 ### Variables y Secretos de Entorno
 
 A continuación se presentan las variables que se deben configurar en el Environment para el correcto despliegue:
 
-| Variable de Entorno | Tipo | Descripción |
-|---------------------|------|-------------|
-| `VERSION_DOTNET` | Variable | Versión del .NET del CDK. Por ejemplo "8". |
-| `VERSION_NODEJS` | Variable | Versión de Node.js. Por ejemplo "20". |
-| `ARN_GITHUB_ROLE` | Variable | ARN del Rol en IAM que se usará para el despliegue. |
-| `ACCOUNT_AWS` | Variable | ID de la cuenta AWS donde desplegar. |
-| `REGION_AWS` | Variable | Región primaria donde desplegar. Por ejemplo "us-west-1". |
-| `DIRECTORIO_CDK` | Variable | Directorio donde se encuentra archivo cdk.json. En este caso sería ".". |
-| `APP_NAME` | Variable | El nombre de la aplicación a desplegar. Por ejemplo "Hermes" |
-| `AOT_MINIMAL_API_DIRECTORY` | Variable | Directorio donde se encuentra el proyecto de la Minimal API AoT. Por ejemplo "./ApiRecepcionSolicitudesEnvio" |
-| `AOT_MINIMAL_API_LAMBDA_HANDLER` | Variable | Handler de la Minimal API AoT. Por ejemplo "ApiRecepcionSolicitudesEnvio" |
-| `AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE` | Variable | Cantidad de memoria para la Lambda de la Minimal API AoT. Por ejemplo "256". |
-| `AOT_MINIMAL_API_LAMBDA_TIMEOUT` | Variable | Tiempo en segundos de timeout para la Lambda de la Minimal API AoT. Por ejemplo "120". |
-| `AOT_MINIMAL_API_MAPPING_DOMAIN_NAME` | Variable | El Custom Domain Name de API Gateway que se usará para la Minimal API AoT. |
-| `AOT_MINIMAL_API_MAPPING_KEY` | Variable | Mapping a usar en el Custom Domain de API Gateway. Por ejemplo "hermes". |
-| `SES_NOMBRE_DE_DEFECTO` | Variable | Nombre por defecto a usar como remitente de los correos. Por ejemplo "Hermes". |
-| `SES_CORREO_DE_DEFECTO` | Variable | Correo por defecto a usar como remitente de los correos. Por ejemplo "hermes@ejemplo.cl". |
-| `WORKER_DIRECTORY` | Variable | Directorio donde se encuentra el proyecto de la Lambda Worker. Por ejemplo "./LambdaWorkerEnvioCorreos". |
-| `WORKER_LAMBDA_HANDLER` | Variable | Handler de la Lambda Worker. Por ejemplo "LambdaWorkerEnvioCorreos::LambdaWorkerEnvioCorreos.Function::FunctionHandler". |
-| `WORKER_LAMBDA_MEMORY_SIZE` | Variable | Cantidad de memoria para la Lambda Worker. Por ejemplo "256". |
-| `WORKER_LAMBDA_TIMEOUT` | Variable | Tiempo en segundos de timeout para la Lambda Worker. Por ejemplo "120". |
-| `NOTIFICATION_EMAILS` | Variable | Emails a los que notificar cuando mensajes lleguen al DLQ (separados por ","). Por ejemplo "correo01@ejemplo.cl,correo02@ejemplo.cl". |
+| Variable de Entorno                   | Tipo     | Descripción                                                                                                                           |
+| ------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `VERSION_DOTNET`                      | Variable | Versión del .NET del CDK. Por ejemplo "8".                                                                                            |
+| `VERSION_NODEJS`                      | Variable | Versión de Node.js. Por ejemplo "20".                                                                                                 |
+| `ARN_GITHUB_ROLE`                     | Variable | ARN del Rol en IAM que se usará para el despliegue.                                                                                   |
+| `ACCOUNT_AWS`                         | Variable | ID de la cuenta AWS donde desplegar.                                                                                                  |
+| `REGION_AWS`                          | Variable | Región primaria donde desplegar. Por ejemplo "us-west-1".                                                                             |
+| `DIRECTORIO_CDK`                      | Variable | Directorio donde se encuentra archivo cdk.json. En este caso sería ".".                                                               |
+| `APP_NAME`                            | Variable | El nombre de la aplicación a desplegar. Por ejemplo "Hermes"                                                                          |
+| `AOT_MINIMAL_API_DIRECTORY`           | Variable | Directorio donde se encuentra el proyecto de la Minimal API AoT. Por ejemplo "./ApiRecepcionSolicitudesEnvio"                         |
+| `AOT_MINIMAL_API_LAMBDA_HANDLER`      | Variable | Handler de la Minimal API AoT. Por ejemplo "ApiRecepcionSolicitudesEnvio"                                                             |
+| `AOT_MINIMAL_API_LAMBDA_MEMORY_SIZE`  | Variable | Cantidad de memoria para la Lambda de la Minimal API AoT. Por ejemplo "256".                                                          |
+| `AOT_MINIMAL_API_LAMBDA_TIMEOUT`      | Variable | Tiempo en segundos de timeout para la Lambda de la Minimal API AoT. Por ejemplo "120".                                                |
+| `AOT_MINIMAL_API_MAPPING_DOMAIN_NAME` | Variable | El Custom Domain Name de API Gateway que se usará para la Minimal API AoT.                                                            |
+| `AOT_MINIMAL_API_MAPPING_KEY`         | Variable | Mapping a usar en el Custom Domain de API Gateway. Por ejemplo "hermes".                                                              |
+| `SES_NOMBRE_DE_DEFECTO`               | Variable | Nombre por defecto a usar como remitente de los correos. Por ejemplo "Hermes".                                                        |
+| `SES_CORREO_DE_DEFECTO`               | Variable | Correo por defecto a usar como remitente de los correos. Por ejemplo "hermes@ejemplo.cl".                                             |
+| `WORKER_DIRECTORY`                    | Variable | Directorio donde se encuentra el proyecto de la Lambda Worker. Por ejemplo "./LambdaWorkerEnvioCorreos".                              |
+| `WORKER_LAMBDA_HANDLER`               | Variable | Handler de la Lambda Worker. Por ejemplo "LambdaWorkerEnvioCorreos::LambdaWorkerEnvioCorreos.Function::FunctionHandler".              |
+| `WORKER_LAMBDA_MEMORY_SIZE`           | Variable | Cantidad de memoria para la Lambda Worker. Por ejemplo "256".                                                                         |
+| `WORKER_LAMBDA_TIMEOUT`               | Variable | Tiempo en segundos de timeout para la Lambda Worker. Por ejemplo "120".                                                               |
+| `NOTIFICATION_EMAILS`                 | Variable | Emails a los que notificar cuando mensajes lleguen al DLQ (separados por ","). Por ejemplo "correo01@ejemplo.cl,correo02@ejemplo.cl". |
