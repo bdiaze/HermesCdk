@@ -58,13 +58,13 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 
                     LambdaLogger.Log(
                         $"[POST] - [/Correo/Enviar] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
-                        $"Correo ingresado exitosamente a la cola de envio - QueueMessageId: {salida.QueueMessageId}.");
+                        $"Correo ingresado exitosamente - ID Mensaje: {salida.IdMensaje}.");
 
                     return Results.Ok(salida);
                 } catch (Exception ex) {
                     LambdaLogger.Log(
                         $"[POST] - [/Correo/Enviar] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status500InternalServerError}] - " +
-                        $"Ocurrio un error al ingresar el correo a la cola de envio. " +
+                        $"Ocurrio un error al ingresar el correo. " +
                         $"{ex}");
 
                     return Results.Problem("Ocurrió un error al procesar su solicitud de envío de correo.");
