@@ -68,13 +68,13 @@ namespace HermesCdk {
 
             #region SQS
             // Creación de cola...
-            Queue dlqEmail = new(this, $"{appName}DeadLetterQueue", new QueueProps {
+            Queue dlqEmail = new(this, $"{appName}EmailDeadLetterQueue", new QueueProps {
                 QueueName = $"{appName}EmailDeadLetterQueue",
                 RetentionPeriod = Duration.Days(14),
                 EnforceSSL = true,
             });
 
-            Queue queueEmail = new(this, $"{appName}Queue", new QueueProps {
+            Queue queueEmail = new(this, $"{appName}EmailQueue", new QueueProps {
                 QueueName = $"{appName}EmailQueue",
                 RetentionPeriod = Duration.Days(14),
                 VisibilityTimeout = Duration.Seconds(Math.Round(double.Parse(workerLambdaTimeout) * 1.5)),
@@ -103,7 +103,7 @@ namespace HermesCdk {
 			});
 
 			// Se crea alarma para enviar notificación cuando llegue un elemento al DLQ...
-			Alarm alarmEmail = new(this, $"{appName}DeadLetterQueueAlarm", new AlarmProps {
+			Alarm alarmEmail = new(this, $"{appName}EmailDeadLetterQueueAlarm", new AlarmProps {
                 AlarmName = $"{appName}EmailDeadLetterQueueAlarm",
                 AlarmDescription = $"Alarma para notificar cuando llega algun email a la DLQ de {appName}",
                 Metric = dlqEmail.MetricApproximateNumberOfMessagesVisible(new MetricOptions {
@@ -118,7 +118,7 @@ namespace HermesCdk {
             });
 			alarmEmail.AddAlarmAction(new SnsAction(topic));
 
-			Alarm alarmWhatsapp = new(this, $"{appName}DeadLetterQueueAlarm", new AlarmProps {
+			Alarm alarmWhatsapp = new(this, $"{appName}WhatsappDeadLetterQueueAlarm", new AlarmProps {
 				AlarmName = $"{appName}WhatsappDeadLetterQueueAlarm",
 				AlarmDescription = $"Alarma para notificar cuando llega algun mensaje de Whatsapp a la DLQ de {appName}",
 				Metric = dlqWhatsapp.MetricApproximateNumberOfMessagesVisible(new MetricOptions {
@@ -293,16 +293,16 @@ namespace HermesCdk {
 
             #region Lambda Worker Envio Correo
             // Creación de log group lambda...
-            LogGroup workerLogGroup = new(this, $"{appName}WorkerLogGroup", new LogGroupProps {
-                LogGroupName = $"/aws/lambda/{appName}WorkerEnvioCorreo/logs",
+            LogGroup workerLogGroupEmail = new(this, $"{appName}EmailWorkerLogGroup", new LogGroupProps {
+                LogGroupName = $"/aws/lambda/{appName}EmailWorker/logs",
                 Retention = RetentionDays.ONE_MONTH,
                 RemovalPolicy = RemovalPolicy.DESTROY
             });
 
             // Creación de role para la función lambda...
-            Role roleWorkerLambda = new(this, $"{appName}WorkerLambdaRole", new RoleProps {
-                RoleName = $"{appName}WorkerEnvioCorreoLambdaRole",
-                Description = $"Role para Lambda Worker Envio Correo de {appName}",
+            Role roleWorkerLambdaEmail = new(this, $"{appName}EmailWorkerLambdaRole", new RoleProps {
+                RoleName = $"{appName}EmailWorker",
+                Description = $"Role para Email Lambda Worker de {appName}",
                 AssumedBy = new ServicePrincipal("lambda.amazonaws.com"),
                 ManagedPolicies = [
                     ManagedPolicy.FromAwsManagedPolicyName("service-role/AWSLambdaVPCAccessExecutionRole"),
@@ -310,7 +310,7 @@ namespace HermesCdk {
                 ],
                 InlinePolicies = new Dictionary<string, PolicyDocument> {
                     {
-                        $"{appName}WorkerEnvioCorreoLambdaPolicy",
+                        $"{appName}EmailWorkerLambdaPolicy",
                         new PolicyDocument(new PolicyDocumentProps {
                             Statements = [
                                 new PolicyStatement(new PolicyStatementProps{
@@ -340,29 +340,71 @@ namespace HermesCdk {
             });
 
             // Creación de la función lambda para procesar emails...
-            Function workerFunctionEmail = new(this, $"{appName}WorkerLambdaFunction", new FunctionProps {
-                FunctionName = $"{appName}WorkerEnvioCorreo",
-                Description = $"Funcion worker encargada de enviar correos desde la cola de la aplicacion {appName}",
+            Function workerFunctionEmail = new(this, $"{appName}EmailWorkerLambdaFunction", new FunctionProps {
+                FunctionName = $"{appName}EmailWorker",
+                Description = $"Funcion worker encargada de enviar emails desde la cola de la aplicacion {appName}",
                 Runtime = Runtime.DOTNET_8,
                 Handler = workerLambdaHandler,
                 Code = Code.FromAsset($"{workerDirectory}/publish/publish.zip"),
                 Timeout = Duration.Seconds(double.Parse(workerLambdaTimeout)),
                 MemorySize = double.Parse(workerLambdaMemorySize),
                 Architecture = Architecture.X86_64,
-                LogGroup = workerLogGroup,
+                LogGroup = workerLogGroupEmail,
                 Environment = new Dictionary<string, string> {
                     { "APP_NAME", appName },
 					{ "SES_NOMBRE_DE_DEFECTO", nombreDeDefecto },
 					{ "SES_CORREO_DE_DEFECTO", correoDeDefecto },
 					{ "DYNAMODB_TABLE_NAME", tablaMensajes.TableName },
 				},
-                Role = roleWorkerLambda,
+                Role = roleWorkerLambdaEmail,
                 ReservedConcurrentExecutions = 1
             });
 
+			workerFunctionEmail.AddEventSource(new SqsEventSource(queueEmail, new SqsEventSourceProps {
+				Enabled = true,
+				ReportBatchItemFailures = true,
+			}));
+
+			// Creación de log group lambda...
+			LogGroup workerLogGroupWhatsapp = new(this, $"{appName}WhatsappWorkerLogGroup", new LogGroupProps {
+				LogGroupName = $"/aws/lambda/{appName}WhatsappWorker/logs",
+				Retention = RetentionDays.ONE_MONTH,
+				RemovalPolicy = RemovalPolicy.DESTROY
+			});
+
+			// Creación de role para la función lambda...
+			Role roleWorkerLambdaWhatsapp = new(this, $"{appName}WhatsappWorkerLambdaRole", new RoleProps {
+				RoleName = $"{appName}WhatsappWorker",
+				Description = $"Role para Whatsapp Lambda Worker de {appName}",
+				AssumedBy = new ServicePrincipal("lambda.amazonaws.com"),
+				ManagedPolicies = [
+					ManagedPolicy.FromAwsManagedPolicyName("service-role/AWSLambdaVPCAccessExecutionRole"),
+					ManagedPolicy.FromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole"),
+				],
+				InlinePolicies = new Dictionary<string, PolicyDocument> {
+					{
+						$"{appName}EmailWorkerLambdaPolicy",
+						new PolicyDocument(new PolicyDocumentProps {
+							Statements = [
+								new PolicyStatement(new PolicyStatementProps{
+									Sid = $"{appName}AccessToDynamoDB",
+									Actions = [
+										"dynamodb:PutItem",
+										"dynamodb:GetItem",
+									],
+									Resources = [
+										tablaMensajes.TableArn,
+									],
+								})
+							]
+						})
+					}
+				}
+			});
+
 			// Creación de la función lambda para procesar mensajes de Whatsapp...
-			Function workerFunctionWhatsapp = new(this, $"{appName}WorkerLambdaFunctionWhatsapp", new FunctionProps {
-				FunctionName = $"{appName}WorkerEnvioWhatsapp",
+			Function workerFunctionWhatsapp = new(this, $"{appName}WhatsappWorkerLambdaFunction", new FunctionProps {
+				FunctionName = $"{appName}WhatsappWorker",
 				Description = $"Funcion worker encargada de enviar mensajes de Whatsapp desde la cola de la aplicacion {appName}",
 				Runtime = Runtime.DOTNET_8,
 				Handler = workerLambdaHandlerWhatsapp,
@@ -370,27 +412,19 @@ namespace HermesCdk {
 				Timeout = Duration.Seconds(double.Parse(workerLambdaTimeout)),
 				MemorySize = double.Parse(workerLambdaMemorySize),
 				Architecture = Architecture.X86_64,
-				LogGroup = workerLogGroup,
+				LogGroup = workerLogGroupWhatsapp,
 				Environment = new Dictionary<string, string> {
 					{ "APP_NAME", appName },
-					{ "SES_NOMBRE_DE_DEFECTO", nombreDeDefecto },
-					{ "SES_CORREO_DE_DEFECTO", correoDeDefecto },
 					{ "DYNAMODB_TABLE_NAME", tablaMensajes.TableName },
 				},
-				Role = roleWorkerLambda,
+				Role = roleWorkerLambdaWhatsapp,
 				ReservedConcurrentExecutions = 1
 			});
-
-			workerFunctionEmail.AddEventSource(new SqsEventSource(queueEmail, new SqsEventSourceProps {
-                Enabled = true,
-                ReportBatchItemFailures = true,
-            }));
 
 			workerFunctionWhatsapp.AddEventSource(new SqsEventSource(queueWhatsapp, new SqsEventSourceProps {
 				Enabled = true,
 				ReportBatchItemFailures = true,
 			}));
-
 			#endregion
 		}
     }
