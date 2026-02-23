@@ -268,10 +268,25 @@ namespace HermesCdk {
                     StageName = "prod",
                     Description = $"Stage para produccion de la aplicacion {appName}",
                 },
-                DefaultMethodOptions = new MethodOptions {
-                    ApiKeyRequired = true,                   
-                },
+                Proxy = false,
             });
+
+            Amazon.CDK.AWS.APIGateway.Resource publicResource = lambdaRestApi.Root.AddResource("public");
+            publicResource.AddProxy(new ProxyResourceOptions {
+                DefaultIntegration = new LambdaIntegration(function),
+                AnyMethod = true,
+                DefaultMethodOptions = new MethodOptions {
+                    ApiKeyRequired = false,
+                }
+            });
+
+            lambdaRestApi.Root.AddProxy(new ProxyResourceOptions {
+                DefaultIntegration = new LambdaIntegration(function),
+                AnyMethod = true,
+				DefaultMethodOptions = new MethodOptions {
+					ApiKeyRequired = true,
+				},
+			});
 
             // Creación de la CfnApiMapping para el API Gateway...
             CfnApiMapping apiMapping = new(this, $"{appName}APIApiMapping", new CfnApiMappingProps {

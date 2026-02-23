@@ -17,8 +17,10 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 		public static IEndpointRouteBuilder MapWhatsappEndpoints(this IEndpointRouteBuilder routes) {
 			RouteGroupBuilder group = routes.MapGroup("/Whatsapp");
 			group.MapEnviarEndpoint();
-			group.MapWebhookGetEndpoint();
-			group.MapWenhookPostEndpoint();
+
+			RouteGroupBuilder publicGroup = routes.MapGroup("/public/Whatsapp");
+			publicGroup.MapWebhookGetEndpoint();
+			publicGroup.MapWenhookPostEndpoint();
 
 			return routes;
 		}
