@@ -47,10 +47,17 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 					};
 					SendMessageResponse response = await sqsClient.SendMessageAsync(request);
 
-                    // Se actualiza el ítem en DynamoDB...
-                    itemDynamo["Estado"] = "InsertadoColaEnvio";
-					itemDynamo.Add("QueueMessageId", response.MessageId);
-					await dynamo.Insertar(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), itemDynamo);
+					// Se actualiza el ítem en DynamoDB...
+					await dynamo.ActualizarCampos(
+						variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
+						new Dictionary<string, object?> { ["IdMensaje"] = (string)itemDynamo["IdMensaje"]! },
+						"SET Estado = :Estado, QueueMessageId = :QueueMessageId",
+						null,
+						new Dictionary<string, object> {
+							{ ":Estado", "InsertadoColaEnvio" },
+							{ ":QueueMessageId", response.MessageId },
+						}
+					);
 
 					Retorno salida = new() { 
                         IdMensaje = (string)itemDynamo["IdMensaje"]!,

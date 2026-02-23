@@ -21,6 +21,21 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
 			return item;
 		}
 
+		public async Task ActualizarCampos(string nombreTabla, Dictionary<string, object?> key, string updateExpression, string? conditionExpression, Dictionary<string, object> values) {
+			UpdateItemRequest request = new() { 
+				TableName = nombreTabla,
+				Key = ToAttributeMap(key),
+				UpdateExpression = updateExpression,
+				ExpressionAttributeValues = values.ToDictionary(kvp => kvp.Key, kvp => ToAttributeValue(kvp.Value))
+			};
+
+			if (conditionExpression != null) {
+				request.ConditionExpression = conditionExpression;
+			}
+
+			await client.UpdateItemAsync(request);
+		}
+
 		public async Task<Dictionary<string, object?>?> Obtener(string nombreTabla, Dictionary<string, object?> key) {
 			GetItemRequest request = new() {
 				TableName = nombreTabla,
@@ -38,6 +53,25 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
 			}
 
 			return ToDict(response.Item);
+		}
+
+		public async Task<List<Dictionary<string, object?>>> ObtenerPorIndice(string nombreTabla, string nombreIndice, string nombreCampo, string valorCampo) {
+			QueryRequest request = new() {
+				TableName = nombreTabla,
+				IndexName = nombreIndice,
+				KeyConditionExpression = $"{nombreCampo} = :key",
+				ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
+					[":key"] = new AttributeValue { S = valorCampo }
+				}
+			};
+
+			QueryResponse response = await client.QueryAsync(request);
+
+			if (response.HttpStatusCode != System.Net.HttpStatusCode.OK) {
+				throw new Exception("Ocurrió un error al obtener por índice los ítems de Dynamo");
+			}
+
+			return [.. response.Items.Select(i => ToDict(i)!)];
 		}
 
 		public static string ToJson(Dictionary<string, AttributeValue> item) {
