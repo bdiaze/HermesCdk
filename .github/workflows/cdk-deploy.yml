@@ -35,6 +35,9 @@ jobs:
                         
             NOTIFICATION_EMAILS: ${{ vars.NOTIFICATION_EMAILS }}
                         
+            WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
+            WHATSAPP_VERIFY_TOKEN: ${{ secrets.WHATSAPP_VERIFY_TOKEN }}
+                        
         steps:
             - name: Checkout Repositorio
               uses: actions/checkout@v4

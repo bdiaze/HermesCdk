@@ -49,15 +49,29 @@ namespace HermesCdk {
 
             string workerDirectory = System.Environment.GetEnvironmentVariable("WORKER_DIRECTORY") ?? throw new ArgumentNullException("WORKER_DIRECTORY");
             string workerLambdaHandler = System.Environment.GetEnvironmentVariable("WORKER_LAMBDA_HANDLER") ?? throw new ArgumentNullException("WORKER_LAMBDA_HANDLER");
-			string workerLambdaHandlerWhatsapp = System.Environment.GetEnvironmentVariable("WORKER_LAMBDA_HANDLER_WHATSAPP") ?? throw new ArgumentNullException("WORKER_LAMBDA_HANDLER_WHATSAPP");
-			string workerLambdaMemorySize = System.Environment.GetEnvironmentVariable("WORKER_LAMBDA_MEMORY_SIZE") ?? throw new ArgumentNullException("WORKER_LAMBDA_MEMORY_SIZE");
+            string workerLambdaHandlerWhatsapp = System.Environment.GetEnvironmentVariable("WORKER_LAMBDA_HANDLER_WHATSAPP") ?? throw new ArgumentNullException("WORKER_LAMBDA_HANDLER_WHATSAPP");
+            string workerLambdaMemorySize = System.Environment.GetEnvironmentVariable("WORKER_LAMBDA_MEMORY_SIZE") ?? throw new ArgumentNullException("WORKER_LAMBDA_MEMORY_SIZE");
             string workerLambdaTimeout = System.Environment.GetEnvironmentVariable("WORKER_LAMBDA_TIMEOUT") ?? throw new ArgumentNullException("WORKER_LAMBDA_TIMEOUT");
 
             string notificationEmails = System.Environment.GetEnvironmentVariable("NOTIFICATION_EMAILS") ?? throw new ArgumentNullException("NOTIFICATION_EMAILS");
 
-            #region SNS Topic
-            // Se crea SNS topic para notificaciones...
-            Topic topic = new(this, $"{appName}NotificationSNSTopic", new TopicProps {
+			string whatsappToken = System.Environment.GetEnvironmentVariable("WHATSAPP_TOKEN") ?? throw new ArgumentNullException("WHATSAPP_TOKEN");
+			string whatsappVerifyToken = System.Environment.GetEnvironmentVariable("WHATSAPP_VERIFY_TOKEN") ?? throw new ArgumentNullException("WHATSAPP_VERIFY_TOKEN");
+
+			#region Secret
+			Secret secret = new(this, $"{appName}Secret", new SecretProps {
+                SecretName = $"/{appName}",
+                Description = $"Secretos de la aplicacion de {appName}",
+                SecretObjectValue = new Dictionary<string, SecretValue> {
+                    { "WhatsappToken", SecretValue.UnsafePlainText(whatsappToken) },
+                    { "WhatsappVerifyToken", SecretValue.UnsafePlainText(whatsappVerifyToken) },
+                }
+			});
+			#endregion
+
+			#region SNS Topic
+			// Se crea SNS topic para notificaciones...
+			Topic topic = new(this, $"{appName}NotificationSNSTopic", new TopicProps {
                 TopicName = $"{appName}NotificationSNSTopic",
             });
 
@@ -146,6 +160,14 @@ namespace HermesCdk {
 				BillingMode = BillingMode.PAY_PER_REQUEST,
 				RemovalPolicy = RemovalPolicy.DESTROY
 			});
+
+            tablaMensajes.AddGlobalSecondaryIndex(new GlobalSecondaryIndexProps { 
+                IndexName = "PorIdSecundario",
+                PartitionKey = new Attribute {
+                    Name = "IdSecundario",
+                    Type = AttributeType.STRING
+                }
+            });
 			#endregion
 
 			#region API Gateway y Lambda
@@ -170,7 +192,16 @@ namespace HermesCdk {
                         $"{appName}APILambdaPolicy",
                         new PolicyDocument(new PolicyDocumentProps {
                             Statements = [
-                                new PolicyStatement(new PolicyStatementProps{
+								new PolicyStatement(new PolicyStatementProps{
+									Sid = $"{appName}AccessToSecretManager",
+									Actions = [
+										"secretsmanager:GetSecretValue"
+									],
+									Resources = [
+										secret.SecretArn,
+									],
+								}),
+								new PolicyStatement(new PolicyStatementProps{
                                     Sid = $"{appName}AccessToSQS",
                                     Actions = [
                                         "sqs:SendMessage"
@@ -185,11 +216,14 @@ namespace HermesCdk {
 									Actions = [
 										"dynamodb:PutItem",
 										"dynamodb:GetItem",
+										"dynamodb:UpdateItem",
+										"dynamodb:Query"
 									],
 									Resources = [
 										tablaMensajes.TableArn,
+										$"{tablaMensajes.TableArn}/*",
 									],
-								})
+								}),
 							]
                         })
                     }
@@ -211,7 +245,8 @@ namespace HermesCdk {
                     { "APP_NAME", appName },
 					{ "EMAIL_SQS_QUEUE_URL", queueEmail.QueueUrl },
 					{ "WHATSAPP_SQS_QUEUE_URL", queueWhatsapp.QueueUrl },
-					{ "DYNAMODB_TABLE_NAME", tablaMensajes.TableName }
+					{ "DYNAMODB_TABLE_NAME", tablaMensajes.TableName },
+                    { "SECRET_ARN_APP", secret.SecretArn },
 				},
                 Role = roleLambda,
             });
@@ -328,9 +363,12 @@ namespace HermesCdk {
 									Actions = [
 										"dynamodb:PutItem",
 										"dynamodb:GetItem",
+										"dynamodb:UpdateItem",
+										"dynamodb:Query"
 									],
 									Resources = [
 										tablaMensajes.TableArn,
+										$"{tablaMensajes.TableArn}/*",
 									],
 								})
 							]
@@ -387,13 +425,25 @@ namespace HermesCdk {
 						new PolicyDocument(new PolicyDocumentProps {
 							Statements = [
 								new PolicyStatement(new PolicyStatementProps{
+									Sid = $"{appName}AccessToSecretManager",
+									Actions = [
+										"secretsmanager:GetSecretValue"
+									],
+									Resources = [
+										secret.SecretArn,
+									],
+								}),
+								new PolicyStatement(new PolicyStatementProps{
 									Sid = $"{appName}AccessToDynamoDB",
 									Actions = [
 										"dynamodb:PutItem",
 										"dynamodb:GetItem",
+										"dynamodb:UpdateItem",
+										"dynamodb:Query"
 									],
 									Resources = [
 										tablaMensajes.TableArn,
+										$"{tablaMensajes.TableArn}/*",
 									],
 								})
 							]
@@ -416,6 +466,7 @@ namespace HermesCdk {
 				Environment = new Dictionary<string, string> {
 					{ "APP_NAME", appName },
 					{ "DYNAMODB_TABLE_NAME", tablaMensajes.TableName },
+					{ "SECRET_ARN_APP", secret.SecretArn },
 				},
 				Role = roleWorkerLambdaWhatsapp,
 				ReservedConcurrentExecutions = 1
