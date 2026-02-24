@@ -152,7 +152,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 					request.Body.Position = 0;
 
 					// Se valida que la signature esté correcta...
-					string expectedSignature = ComputeHmacSha256(cuerpo, secretApp["WhatsappToken"]);
+					string expectedSignature = ComputeHmacSha256(cuerpo, secretApp["WhatsappAppSecret"]);
 					string receivedSignature = xHubSignature256.Replace("sha256=", "");
 					if (!CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expectedSignature), Encoding.UTF8.GetBytes(receivedSignature))) {
 						LambdaLogger.Log(

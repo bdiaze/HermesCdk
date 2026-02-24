@@ -57,6 +57,8 @@ namespace HermesCdk {
 
 			string whatsappToken = System.Environment.GetEnvironmentVariable("WHATSAPP_TOKEN") ?? throw new ArgumentNullException("WHATSAPP_TOKEN");
 			string whatsappVerifyToken = System.Environment.GetEnvironmentVariable("WHATSAPP_VERIFY_TOKEN") ?? throw new ArgumentNullException("WHATSAPP_VERIFY_TOKEN");
+			string whatsappAppSecret = System.Environment.GetEnvironmentVariable("WHATSAPP_APP_SECRET") ?? throw new ArgumentNullException("WHATSAPP_APP_SECRET");
+
 
 			#region Secret
 			Secret secret = new(this, $"{appName}Secret", new SecretProps {
@@ -65,7 +67,8 @@ namespace HermesCdk {
                 SecretObjectValue = new Dictionary<string, SecretValue> {
                     { "WhatsappToken", SecretValue.UnsafePlainText(whatsappToken) },
                     { "WhatsappVerifyToken", SecretValue.UnsafePlainText(whatsappVerifyToken) },
-                }
+					{ "WhatsappAppSecret", SecretValue.UnsafePlainText(whatsappAppSecret) },
+				}
 			});
 			#endregion
 

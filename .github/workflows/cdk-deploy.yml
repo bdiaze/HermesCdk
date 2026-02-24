@@ -37,6 +37,7 @@ jobs:
                         
             WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
             WHATSAPP_VERIFY_TOKEN: ${{ secrets.WHATSAPP_VERIFY_TOKEN }}
+            WHATSAPP_APP_SECRET: ${{ secrets.WHATSAPP_APP_SECRET }}
                         
         steps:
             - name: Checkout Repositorio
