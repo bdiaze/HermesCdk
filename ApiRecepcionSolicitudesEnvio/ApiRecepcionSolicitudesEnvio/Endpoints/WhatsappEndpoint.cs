@@ -162,8 +162,6 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 						return Results.Unauthorized();
 					}
 
-					LambdaLogger.Log(cuerpo);
-
 					WhatsappWebhook webhook = JsonSerializer.Deserialize(cuerpo, AppJsonSerializerContext.Default.WhatsappWebhook)!;
 
 					foreach (Entry entry in webhook.Entry) {
