@@ -20,7 +20,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 
 			RouteGroupBuilder publicGroup = routes.MapGroup("/public/Whatsapp");
 			publicGroup.MapWebhookGetEndpoint();
-			publicGroup.MapWenhookPostEndpoint();
+			publicGroup.MapWebhookPostEndpoint();
 
 			return routes;
 		}
@@ -113,7 +113,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 						$"[GET] - [/Whatsapp/webhook] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
 						$"Ejecución correcta del webhook de Whatsapp.");
 
-					return Results.Ok(challenge);
+					return Results.Text(challenge);
 				} catch (Exception ex) {
 					LambdaLogger.Log(
 						$"[GET] - [/Whatsapp/webhook] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status500InternalServerError}] - " +
@@ -127,7 +127,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 			return routes;
 		}
 
-		private static IEndpointRouteBuilder MapWenhookPostEndpoint(this IEndpointRouteBuilder routes) {
+		private static IEndpointRouteBuilder MapWebhookPostEndpoint(this IEndpointRouteBuilder routes) {
 			routes.MapPost("/webhook", async (HttpRequest request, [FromHeader(Name = "X-Hub-Signature-256")] string xHubSignature256, VariableEntornoHelper variableEntorno, SecretManagerHelper secretManagerHelper, DynamoHelper dynamo) => {
 				Stopwatch stopwatch = Stopwatch.StartNew();
 
