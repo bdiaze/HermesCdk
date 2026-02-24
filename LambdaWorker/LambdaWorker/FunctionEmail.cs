@@ -25,7 +25,6 @@ public class FunctionEmail
         var builder = Host.CreateDefaultBuilder();
         builder.ConfigureServices((context, services) => {
             #region Singleton AWS Services
-            services.AddSingleton<IAmazonSimpleSystemsManagement, AmazonSimpleSystemsManagementClient>();
             services.AddSingleton<IAmazonSimpleEmailServiceV2, AmazonSimpleEmailServiceV2Client>();
 			services.AddSingleton<IAmazonDynamoDB, AmazonDynamoDBClient>();
 
@@ -50,7 +49,7 @@ public class FunctionEmail
         Stopwatch stopwatchDelayCorreos = Stopwatch.StartNew();
 
         LambdaLogger.Log(
-            $"[Function] - [FunctionHandler] - " +
+            $"[FunctionEmail] - [FunctionHandler] - " +
             $"Iniciado worker de envio de correos.");
 
         VariableEntornoHelper variableEntorno = serviceProvider.GetRequiredService<VariableEntornoHelper>();
@@ -58,7 +57,7 @@ public class FunctionEmail
 		IAmazonSimpleEmailServiceV2 sesClient = serviceProvider.GetRequiredService<IAmazonSimpleEmailServiceV2>();
 
         LambdaLogger.Log(
-            $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
+            $"[FunctionEmail] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
             $"Se obtendran los parametros necesarios para procesar los mensajes.");
 
         // Obteniendo URL de la cola de correos a procesar...
@@ -71,7 +70,7 @@ public class FunctionEmail
         };
 
         LambdaLogger.Log(
-            $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
+            $"[FunctionEmail] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
             $"Se obtendra la quota disponible de SES.");
 
         // Obteniendo límites de SES para configurar las esperas entre envíos de correos...
@@ -80,12 +79,14 @@ public class FunctionEmail
         int cantEmailsDisponibles = (int)(accountResponse.SendQuota.Max24HourSend! - accountResponse.SendQuota.SentLast24Hours!);
 
         LambdaLogger.Log(
-            $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
+            $"[FunctionEmail] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
             $"Se comienza el envio de {evnt.Records.Count} correos");
 
         foreach (SQSMessage mensaje in evnt.Records) {
+            string idMensaje = "";
+
             try {
-                string idMensaje = mensaje.Body;
+                idMensaje = mensaje.Body;
                 Dictionary<string, object?> itemDynamo = await dynamo.Obtener(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), new Dictionary<string, object?> {
                     ["IdMensaje"] = idMensaje
 				}) ?? throw new Exception("No se encontró el mensaje");
@@ -172,8 +173,8 @@ public class FunctionEmail
 				}
             } catch (Exception ex) {
                 LambdaLogger.Log(LogLevel.Error,
-                    $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
-                    $"Ocurrio un error al procesar correo {mensaje.MessageId}. " +
+                    $"[FunctionEmail] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
+                    $"Ocurrio un error al procesar correo - ID Mensaje: {idMensaje} - Queue Message ID: {mensaje.MessageId}. " +
                     $"{ex}");
 
                 listaMensajesError.Add(new BatchItemFailure {
@@ -183,7 +184,7 @@ public class FunctionEmail
         }
 
         LambdaLogger.Log(
-            $"[Function] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
+            $"[FunctionEmail] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
             $"Termino exitosamente el envio de correos - Casos con error: {listaMensajesError.Count}.");
 
         return new SQSBatchResponse {

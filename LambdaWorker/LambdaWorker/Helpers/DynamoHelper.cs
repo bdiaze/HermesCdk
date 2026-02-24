@@ -27,6 +27,21 @@ namespace LambdaWorker.Helpers {
 			return item;
 		}
 
+		public async Task ActualizarCampos(string nombreTabla, Dictionary<string, object?> key, string updateExpression, string? conditionExpression, Dictionary<string, object> values) {
+			UpdateItemRequest request = new() {
+				TableName = nombreTabla,
+				Key = ToAttributeMap(key),
+				UpdateExpression = updateExpression,
+				ExpressionAttributeValues = values.ToDictionary(kvp => kvp.Key, kvp => ToAttributeValue(kvp.Value))
+			};
+
+			if (conditionExpression != null) {
+				request.ConditionExpression = conditionExpression;
+			}
+
+			await client.UpdateItemAsync(request);
+		}
+
 		public async Task<Dictionary<string, object?>?> Obtener(string nombreTabla, Dictionary<string, object?> key) {
 			GetItemRequest request = new() {
 				TableName = nombreTabla,

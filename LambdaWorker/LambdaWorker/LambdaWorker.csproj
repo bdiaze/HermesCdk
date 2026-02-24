@@ -11,16 +11,18 @@
     <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Amazon.Lambda.Annotations" Version="1.7.0" />
-    <PackageReference Include="Amazon.Lambda.Core" Version="2.7.0" />
-    <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
-    <PackageReference Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.14" />
-    <PackageReference Include="AWSSDK.SimpleEmailV2" Version="4.0.5.1" />
-    <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="4.0.3.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Amazon.Lambda.Annotations" Version="1.9.0" />
+    <PackageReference Include="Amazon.Lambda.Core" Version="2.8.1" />
+    <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.5" />
+    <PackageReference Include="Amazon.Lambda.SQSEvents" Version="2.2.1" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.14.1" />
+    <PackageReference Include="AWSSDK.SecretsManager" Version="4.0.4.6" />
+    <PackageReference Include="AWSSDK.SimpleEmailV2" Version="4.0.11.5" />
+    <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="4.0.7" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.13" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
   <ItemGroup>
     <None Update="appsettings.Development.json">

@@ -15,4 +15,21 @@ namespace LambdaWorker.Models {
         public required string Cuerpo { get; set; }
         public List<Adjunto>? Adjuntos { get; set; } = null;
     }
+
+	internal class DireccionCorreo {
+		public string? Nombre { get; set; }
+		public required string Correo { get; set; }
+		public override string ToString() {
+			if (!string.IsNullOrWhiteSpace(Nombre)) {
+				return $"\"{Nombre}\" <{Correo}>";
+			}
+			return Correo;
+		}
+	}
+
+	internal class Adjunto {
+		public required string NombreArchivo { get; set; }
+		public required string TipoMime { get; set; }
+		public required string ContenidoBase64 { get; set; }
+	}
 }
