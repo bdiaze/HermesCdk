@@ -17,7 +17,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
         }
 
         private static IEndpointRouteBuilder MapEnviarEndpoint(this IEndpointRouteBuilder routes) {
-            routes.MapPost("/Enviar", async (Correo correo, IAmazonSQS sqsClient, VariableEntornoHelper variableEntorno, DynamoHelper dynamo) => {
+            routes.MapPost("/Enviar/{appName?}", async (string? appName, Correo correo, IAmazonSQS sqsClient, VariableEntornoHelper variableEntorno, DynamoHelper dynamo) => {
                 Stopwatch stopwatch = Stopwatch.StartNew();
 
                 try {
@@ -38,6 +38,11 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 						["Contenido"] = jsonCorreo,
 						["FechaCreacion"] = DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture),
 					};
+
+                    if (appName != null) {
+                        itemDynamo["AppName"] = appName;
+					}
+
 					await dynamo.Insertar(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), itemDynamo);
 
                     // Se ingresa a cola de envío...
