@@ -199,6 +199,14 @@ namespace HermesCdk {
 					Type = AttributeType.STRING
 				},
 			});
+
+			tablaConversacion.AddGlobalSecondaryIndex(new GlobalSecondaryIndexProps {
+				IndexName = "GSI2",
+				PartitionKey = new Attribute {
+					Name = "GSI2PK",
+					Type = AttributeType.STRING
+				}
+			});
 			#endregion
 
 			#region API Gateway y Lambda
