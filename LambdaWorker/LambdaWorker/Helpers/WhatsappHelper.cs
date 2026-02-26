@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace LambdaWorker.Helpers {
 	internal class WhatsappHelper(VariableEntornoHelper variableEntorno, SecretManagerHelper secretManagerHelper, HttpClient httpClient) {
-		public async Task<string> Enviar(string idNumeroTelefono, string para, string nombreTemplate, string lenguaje, string[]? parametrosHeader, string[]? parametrosBody, string[]? parametrosButton) {
+		public async Task<(string whatsappIdMessage, object payload)> Enviar(string idNumeroTelefono, string para, string nombreTemplate, string lenguaje, string[]? parametrosHeader, string[]? parametrosBody, string[]? parametrosButton) {
 			List<object> componentes = [];
 			if (parametrosHeader != null && parametrosHeader.Length > 0) {
 				componentes.Add(new {
@@ -56,7 +56,7 @@ namespace LambdaWorker.Helpers {
 			}
 
 			WhatsappResponse? result = JsonSerializer.Deserialize<WhatsappResponse>(responseContent);
-			return result?.Messages?.FirstOrDefault()?.Id ?? throw new Exception("Whatsapp no retornó el ID del mensaje.");
+			return (result?.Messages?.FirstOrDefault()?.Id ?? throw new Exception("Whatsapp no retornó el ID del mensaje."), payload);
 		}
 	}
 }

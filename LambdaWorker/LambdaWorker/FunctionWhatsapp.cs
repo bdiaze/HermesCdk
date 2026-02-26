@@ -5,6 +5,7 @@ using Amazon.SecretsManager;
 using Amazon.SimpleEmailV2;
 using Amazon.SimpleEmailV2.Model;
 using Amazon.SimpleSystemsManagement;
+using LambdaWorker.Enums.DynamoDB;
 using LambdaWorker.Helpers;
 using LambdaWorker.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +33,7 @@ namespace LambdaWorker {
 				services.AddSingleton<VariableEntornoHelper>();
 				services.AddSingleton<SecretManagerHelper>();
 				services.AddSingleton<DynamoHelper>();
+				services.AddSingleton<ConversacionHelper>();
 				services.AddHttpClient<WhatsappHelper>(client => {
 					client.BaseAddress = new Uri("https://graph.facebook.com/");
 					client.Timeout = TimeSpan.FromSeconds(30);
@@ -56,6 +58,7 @@ namespace LambdaWorker {
 			VariableEntornoHelper variableEntorno = serviceProvider.GetRequiredService<VariableEntornoHelper>();
 			DynamoHelper dynamo = serviceProvider.GetRequiredService<DynamoHelper>();
 			WhatsappHelper whatsappHelper = serviceProvider.GetRequiredService<WhatsappHelper>();
+			ConversacionHelper conversacionHelper = serviceProvider.GetRequiredService<ConversacionHelper>();
 
 			LambdaLogger.Log(
 				$"[FunctionWhatsapp] - [FunctionHandler] - [{stopwatch.ElapsedMilliseconds} ms] - " +
@@ -93,7 +96,7 @@ namespace LambdaWorker {
 						case "Whatsapp":
 							Whatsapp whatsapp = JsonSerializer.Deserialize<Whatsapp>((string)contenido)!;
 
-							string idMensajeWhatsapp = await whatsappHelper.Enviar(
+							(string idMensajeWhatsapp, object payload) = await whatsappHelper.Enviar(
 								whatsapp.De, 
 								whatsapp.Para, 
 								whatsapp.NombreTemplate, 
@@ -103,6 +106,8 @@ namespace LambdaWorker {
 								whatsapp.ParametrosBoton
 							);
 
+							DateTime fechaEnvio = DateTime.UtcNow;
+
 							// Se actualiza el ítem en DynamoDB...
 							await dynamo.ActualizarCampos(
 								variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
@@ -111,10 +116,22 @@ namespace LambdaWorker {
 								null,
 								new Dictionary<string, object> {
 									{ ":Estado", "WhatsappEnviado" },
-									{ ":FechaEnvio", DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture) },
+									{ ":FechaEnvio", fechaEnvio.ToString("o", CultureInfo.InvariantCulture) },
 									{ ":WhatsappMessageId", idMensajeWhatsapp },
 									{ ":IdSecundario", idMensajeWhatsapp },
 								}
+							);
+
+							// Y se registra mensaje en la conversación con el usuario...
+							await conversacionHelper.RegistrarNuevoMensajeSalida(
+								itemDynamo.TryGetValue("AppName", out object? appName) ? (string)appName! : "General",
+								whatsapp.Para,
+								idMensajeWhatsapp,
+								TipoMensaje.Template,
+								null,
+								whatsapp.NombreTemplate,
+								JsonSerializer.Serialize(payload),
+								fechaEnvio
 							);
 
 							break;
