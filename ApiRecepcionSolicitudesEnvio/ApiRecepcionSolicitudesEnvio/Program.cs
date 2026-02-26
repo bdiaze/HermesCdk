@@ -33,8 +33,9 @@ builder.Services.AddSingleton<IAmazonSecretsManager, AmazonSecretsManagerClient>
 
 #region Singleton Helpers
 builder.Services.AddSingleton<VariableEntornoHelper>();
-builder.Services.AddSingleton<DynamoHelper>();
 builder.Services.AddSingleton<SecretManagerHelper>();
+builder.Services.AddSingleton<DynamoHelper>();
+builder.Services.AddSingleton<ConversacionHelper>();
 #endregion
 
 var app = builder.Build();

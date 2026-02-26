@@ -2,6 +2,7 @@
 using Amazon.Runtime.Internal.Transform;
 using Amazon.SQS;
 using Amazon.SQS.Model;
+using ApiRecepcionSolicitudesEnvio.Enums.DynamoDB;
 using ApiRecepcionSolicitudesEnvio.Helpers;
 using ApiRecepcionSolicitudesEnvio.Models;
 using Microsoft.AspNetCore.Http.Features;
@@ -133,7 +134,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 		}
 
 		private static IEndpointRouteBuilder MapWebhookPostEndpoint(this IEndpointRouteBuilder routes) {
-			routes.MapPost("/webhook", async (HttpRequest request, [FromHeader(Name = "X-Hub-Signature-256")] string xHubSignature256, VariableEntornoHelper variableEntorno, SecretManagerHelper secretManagerHelper, DynamoHelper dynamo) => {
+			routes.MapPost("/webhook", async (HttpRequest request, [FromHeader(Name = "X-Hub-Signature-256")] string xHubSignature256, VariableEntornoHelper variableEntorno, SecretManagerHelper secretManagerHelper, DynamoHelper dynamo, ConversacionHelper conversacionHelper) => {
 				Stopwatch stopwatch = Stopwatch.StartNew();
 
 				try {
@@ -176,59 +177,87 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 							}
 
 							foreach (Estado status in change.Value.Statuses ?? []) {
-								DateTimeOffset fechaStatus = DateTimeOffset.FromUnixTimeSeconds(long.Parse(status.Timestamp));
-
-								// Busco mensajes según el ID secundario...
-								List<Dictionary<string, object?>> mensajes = await dynamo.ObtenerPorIndice(
-									variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
-									"PorIdSecundario",
-									"IdSecundario",
-									status.Id
-								);
-
-								foreach (Dictionary<string, object?> mensaje in mensajes.Where(m => m.TryGetValue("WhatsappMessageId", out object? whatsappMessageId) && whatsappMessageId != null && (string)whatsappMessageId == status.Id)) {
-									if (status.Status == "sent") {
-										await dynamo.ActualizarCampos(
-											variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
-											new Dictionary<string, object?> { ["IdMensaje"] = (string)mensaje["IdMensaje"]! },
-											"SET FechaConfirmacionEnvio = :FechaConfirmacionEnvio",
-											null,
-											new Dictionary<string, object> {
-												{ ":FechaConfirmacionEnvio", fechaStatus.ToString("o", CultureInfo.InvariantCulture) }
-											}
-										);
-									} else if (status.Status == "delivered") {
-										await dynamo.ActualizarCampos(
-											variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
-											new Dictionary<string, object?> { ["IdMensaje"] = (string)mensaje["IdMensaje"]! },
-											"SET FechaEntrega = :FechaEntrega",
-											null,
-											new Dictionary<string, object> {
-												{ ":FechaEntrega", fechaStatus.ToString("o", CultureInfo.InvariantCulture) }
-											}
-										);
-									} else if (status.Status == "read") {
-										await dynamo.ActualizarCampos(
-											variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
-											new Dictionary<string, object?> { ["IdMensaje"] = (string)mensaje["IdMensaje"]! },
-											"SET FechaLectura = :FechaLectura",
-											null,
-											new Dictionary<string, object> {
-												{ ":FechaLectura", fechaStatus.ToString("o", CultureInfo.InvariantCulture) }
-											}
-										);
-									} else if (status.Status == "failed") {
-										await dynamo.ActualizarCampos(
-											variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
-											new Dictionary<string, object?> { ["IdMensaje"] = (string)mensaje["IdMensaje"]! },
-											"SET FechaFallo = :FechaFallo, Error = :Error",
-											null,
-											new Dictionary<string, object> {
-												{ ":FechaFallo", fechaStatus.ToString("o", CultureInfo.InvariantCulture) },
-												{ ":Error", JsonSerializer.Serialize(status.Errors ?? [], AppJsonSerializerContext.Default.ListError) }
-											}
-										);
+								try {
+									// Se actualiza el estado en los mensajes en la conversación...
+									try {
+										EstadoMensaje? nuevoEstado = status.Status switch {
+											"sent" => EstadoMensaje.ConfirmacionEnvio,
+											"delivered" => EstadoMensaje.Entregado,
+											"read" => EstadoMensaje.Leido,
+											"failed" => EstadoMensaje.Fallido,
+											_ => null
+										};
+										if (nuevoEstado != null) {
+											await conversacionHelper.ActualizarEstadoMensaje(status.Id, nuevoEstado.Value);
+										}
+									} catch (Exception ex) {
+										LambdaLogger.Log(
+											$"[POST] - [/Whatsapp/webhook] - [{stopwatch.ElapsedMilliseconds} ms] - " +
+											$"Ocurrió un error al cambiar estado de mensaje en conversación - Status ID: {status.Id}. ",
+											$"{ex}");
 									}
+
+
+									// Se actualiza estado del mensaje en trazas de salidas...
+									DateTimeOffset fechaStatus = DateTimeOffset.FromUnixTimeSeconds(long.Parse(status.Timestamp));
+
+									// Busco mensajes según el ID secundario...
+									List<Dictionary<string, object?>> mensajes = await dynamo.ObtenerPorIndice(
+										variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
+										"PorIdSecundario",
+										"IdSecundario",
+										status.Id
+									);
+
+									foreach (Dictionary<string, object?> mensaje in mensajes.Where(m => m.TryGetValue("WhatsappMessageId", out object? whatsappMessageId) && whatsappMessageId != null && (string)whatsappMessageId == status.Id)) {
+										if (status.Status == "sent") {
+											await dynamo.ActualizarCampos(
+												variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
+												new Dictionary<string, object?> { ["IdMensaje"] = (string)mensaje["IdMensaje"]! },
+												"SET FechaConfirmacionEnvio = :FechaConfirmacionEnvio",
+												null,
+												new Dictionary<string, object> {
+												{ ":FechaConfirmacionEnvio", fechaStatus.ToString("o", CultureInfo.InvariantCulture) }
+												}
+											);
+										} else if (status.Status == "delivered") {
+											await dynamo.ActualizarCampos(
+												variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
+												new Dictionary<string, object?> { ["IdMensaje"] = (string)mensaje["IdMensaje"]! },
+												"SET FechaEntrega = :FechaEntrega",
+												null,
+												new Dictionary<string, object> {
+												{ ":FechaEntrega", fechaStatus.ToString("o", CultureInfo.InvariantCulture) }
+												}
+											);
+										} else if (status.Status == "read") {
+											await dynamo.ActualizarCampos(
+												variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
+												new Dictionary<string, object?> { ["IdMensaje"] = (string)mensaje["IdMensaje"]! },
+												"SET FechaLectura = :FechaLectura",
+												null,
+												new Dictionary<string, object> {
+												{ ":FechaLectura", fechaStatus.ToString("o", CultureInfo.InvariantCulture) }
+												}
+											);
+										} else if (status.Status == "failed") {
+											await dynamo.ActualizarCampos(
+												variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
+												new Dictionary<string, object?> { ["IdMensaje"] = (string)mensaje["IdMensaje"]! },
+												"SET FechaFallo = :FechaFallo, Error = :Error",
+												null,
+												new Dictionary<string, object> {
+													{ ":FechaFallo", fechaStatus.ToString("o", CultureInfo.InvariantCulture) },
+													{ ":Error", JsonSerializer.Serialize(status.Errors ?? [], AppJsonSerializerContext.Default.ListError) }
+												}
+											);
+										}
+									}
+								} catch (Exception ex) {
+									LambdaLogger.Log(
+										$"[POST] - [/Whatsapp/webhook] - [{stopwatch.ElapsedMilliseconds} ms] - " +
+										$"Ocurrió un error al procesar Status ID: {status.Id}. ",
+										$"{ex}");
 								}
 							}
 						}
