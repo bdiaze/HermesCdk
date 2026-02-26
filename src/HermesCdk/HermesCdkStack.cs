@@ -171,6 +171,34 @@ namespace HermesCdk {
                     Type = AttributeType.STRING
                 }
             });
+
+			// Se crea tabla para administrar conversaciones...
+			Table tablaConversacion = new(this, $"{appName}DynamoDBTableConversacion", new TableProps {
+				TableName = $"{appName}Conversacion",
+				PartitionKey = new Attribute {
+					Name = "PK",
+					Type = AttributeType.STRING
+				},
+                SortKey = new Attribute {
+					Name = "SK",
+					Type = AttributeType.STRING
+				},
+				DeletionProtection = true,
+				BillingMode = BillingMode.PAY_PER_REQUEST,
+				RemovalPolicy = RemovalPolicy.DESTROY
+			});
+
+			tablaConversacion.AddGlobalSecondaryIndex(new GlobalSecondaryIndexProps {
+				IndexName = "GSI1",
+				PartitionKey = new Attribute {
+					Name = "GSI1PK",
+					Type = AttributeType.STRING
+				},
+				SortKey = new Attribute {
+					Name = "GSI1SK",
+					Type = AttributeType.STRING
+				},
+			});
 			#endregion
 
 			#region API Gateway y Lambda
@@ -225,6 +253,8 @@ namespace HermesCdk {
 									Resources = [
 										tablaMensajes.TableArn,
 										$"{tablaMensajes.TableArn}/*",
+										tablaConversacion.TableArn,
+                                        $"{tablaConversacion.TableArn}/*",
 									],
 								}),
 							]
@@ -249,7 +279,8 @@ namespace HermesCdk {
 					{ "EMAIL_SQS_QUEUE_URL", queueEmail.QueueUrl },
 					{ "WHATSAPP_SQS_QUEUE_URL", queueWhatsapp.QueueUrl },
 					{ "DYNAMODB_TABLE_NAME", tablaMensajes.TableName },
-                    { "SECRET_ARN_APP", secret.SecretArn },
+					{ "DYNAMODB_TABLE_NAME_CONVERSACION", tablaConversacion.TableName },
+					{ "SECRET_ARN_APP", secret.SecretArn },
 				},
                 Role = roleLambda,
             });
@@ -462,6 +493,8 @@ namespace HermesCdk {
 									Resources = [
 										tablaMensajes.TableArn,
 										$"{tablaMensajes.TableArn}/*",
+										tablaConversacion.TableArn,
+										$"{tablaConversacion.TableArn}/*",
 									],
 								})
 							]
@@ -484,6 +517,7 @@ namespace HermesCdk {
 				Environment = new Dictionary<string, string> {
 					{ "APP_NAME", appName },
 					{ "DYNAMODB_TABLE_NAME", tablaMensajes.TableName },
+					{ "DYNAMODB_TABLE_NAME_CONVERSACION", tablaConversacion.TableName },
 					{ "SECRET_ARN_APP", secret.SecretArn },
 				},
 				Role = roleWorkerLambdaWhatsapp,
