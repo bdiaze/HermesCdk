@@ -25,9 +25,10 @@ namespace LambdaWorker.Entities.DynamoDB {
 
 		public override string? GSI1PK => null;
 		public override string? GSI1SK => null;
+		public override string? GSI2PK => $"WHATSAPPMESSAGEID#{WhatsappMessageId}";
 
 		public override Dictionary<string, AttributeValue> ToItem() {
-			Dictionary<string, AttributeValue> item = this.Key.Concat(this.GSI1Attributes).Concat(
+			Dictionary<string, AttributeValue> item = this.Key.Concat(this.GSI1Attributes).Concat(this.GSI2Attributes).Concat(
 				new Dictionary<string, AttributeValue>() {
 					{ "TenantId", new AttributeValue { S = $"{TenantId}" } },
 					{ "NumeroTelefono", new AttributeValue { S = $"{NumeroTelefono}" } },

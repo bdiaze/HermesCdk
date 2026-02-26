@@ -8,8 +8,9 @@ namespace LambdaWorker.Enums.DynamoDB {
 	internal enum EstadoMensaje {
 		Recibido = 1,
 		Enviado = 2,
-		Entregado = 3,
-		Leido = 4,
-		Fallido = 5
+		ConfirmacionEnvio = 3,
+		Entregado = 4,
+		Leido = 5,
+		Fallido = 6
 	}
 }

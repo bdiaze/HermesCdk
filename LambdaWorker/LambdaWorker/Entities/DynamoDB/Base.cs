@@ -12,6 +12,7 @@ namespace LambdaWorker.Entities.DynamoDB {
 		public abstract string SK { get; }
 		public abstract string? GSI1PK { get; }
 		public abstract string? GSI1SK { get; }
+		public abstract string? GSI2PK { get; }
 
 		public Dictionary<string, AttributeValue> Key {
 			get {
@@ -32,6 +33,16 @@ namespace LambdaWorker.Entities.DynamoDB {
 					gsi1key["GSI1SK"] = new AttributeValue() { S = GSI1SK };
 				}
 				return gsi1key;
+			}
+		}
+
+		public Dictionary<string, AttributeValue> GSI2Attributes {
+			get {
+				Dictionary<string, AttributeValue> gsi2key = [];
+				if (GSI2PK != null) {
+					gsi2key["GSI2PK"] = new AttributeValue() { S = GSI2PK };
+				}
+				return gsi2key;
 			}
 		}
 
