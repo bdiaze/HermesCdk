@@ -66,6 +66,7 @@ jobs:
                     dotnet publish /p:PublishDir=../publish /p:PublishAot=true -r linux-x64 --self-contained &&
                     chown -R $(id -u):$(id -g) /src/${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}/${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}/bin &&
                     chown -R $(id -u):$(id -g) /src/${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}/${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}/obj &&
+                    chown -R $(id -u):$(id -g) /src/${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}/publish &&
                     chown -R $(id -u):$(id -g) /src/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/bin &&
                     chown -R $(id -u):$(id -g) /src/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/obj &&
                     chown -R $(id -u):$(id -g) /src/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/publish &&
