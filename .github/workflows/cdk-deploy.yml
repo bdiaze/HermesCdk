@@ -58,8 +58,9 @@ jobs:
                             
             - name: Publish .NET AoT Minimal API
               run: |
-                  docker run --rm -v ${{ github.workspace }}/${{ vars.AOT_MINIMAL_API_DIRECTORY }}:/src -w /src public.ecr.aws/amazonlinux/amazonlinux:2023 \bash -c "
+                  docker run --rm -v ${{ github.workspace }}:/src -w /src public.ecr.aws/amazonlinux/amazonlinux:2023 \bash -c "
                     yum install -y dotnet-sdk-8.0 gcc zlib-devel && 
+                    cd ./${{ vars.AOT_MINIMAL_API_DIRECTORY }}
                     dotnet publish /p:PublishDir=../publish /p:PublishAot=true -r linux-x64 --self-contained &&
                     cd ./publish &&
                     zip -r -T ./publish.zip ./*"
