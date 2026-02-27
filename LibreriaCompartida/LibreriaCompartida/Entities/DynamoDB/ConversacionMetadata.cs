@@ -23,7 +23,7 @@ namespace LibreriaCompartida.Entities.DynamoDB {
 		public override string SK => $"METADATA";
 
 		public override string? GSI1PK => $"TENANT#{TenantId}";
-		public override string? GSI1SK => $"FECHAULTIMOMENSAJE#{FechaUltimoMensaje.ToString("o", CultureInfo.InvariantCulture)}";
+		public override string? GSI1SK => $"FECHAULTIMOMENSAJE#{FechaUltimoMensaje.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}";
 		public override string? GSI2PK => null;
 
 		public override Dictionary<string, AttributeValue> ToItem() {
@@ -31,7 +31,7 @@ namespace LibreriaCompartida.Entities.DynamoDB {
 				new Dictionary<string, AttributeValue>() {
 					{ "TenantId", new AttributeValue { S = $"{TenantId}" } },
 					{ "NumeroTelefono", new AttributeValue { S = $"{NumeroTelefono}" } },
-					{ "FechaUltimoMensaje",new AttributeValue { S = $"{FechaUltimoMensaje.ToString("o", CultureInfo.InvariantCulture)}" } },
+					{ "FechaUltimoMensaje",new AttributeValue { S = $"{FechaUltimoMensaje.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" } },
 					{ "PreviewUltimoMensaje", new AttributeValue { NULL = true } },
 					{ "CantidadNoLeidos", new AttributeValue { N = $"{CantidadNoLeidos.ToString(CultureInfo.InvariantCulture)}" } },
 					{ "Estado", new AttributeValue { S = $"{Estado}" } },
@@ -45,11 +45,11 @@ namespace LibreriaCompartida.Entities.DynamoDB {
 			}
 
 			if (FechaUltimaEntrada != null) {
-				item["FechaUltimaEntrada"] = new AttributeValue { S = $"{FechaUltimaEntrada.Value.ToString("o", CultureInfo.InvariantCulture)}" };
+				item["FechaUltimaEntrada"] = new AttributeValue { S = $"{FechaUltimaEntrada.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
 			}
 
 			if (PuedeResponderGratuitoHasta != null) {
-				item["PuedeResponderGratuitoHasta"] = new AttributeValue { S = $"{PuedeResponderGratuitoHasta.Value.ToString("o", CultureInfo.InvariantCulture)}" };
+				item["PuedeResponderGratuitoHasta"] = new AttributeValue { S = $"{PuedeResponderGratuitoHasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
 			}
 
 			return item;
@@ -59,12 +59,12 @@ namespace LibreriaCompartida.Entities.DynamoDB {
 			return new ConversacionMetadata() {
 				TenantId = item["TenantId"].S,
 				NumeroTelefono = item["NumeroTelefono"].S,
-				FechaUltimoMensaje = DateTime.ParseExact(item["FechaUltimoMensaje"].S, "o", CultureInfo.InvariantCulture),
+				FechaUltimoMensaje = DateTime.ParseExact(item["FechaUltimoMensaje"].S, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
 				PreviewUltimoMensaje = item["PreviewUltimoMensaje"].S,
 				CantidadNoLeidos = int.Parse(item["CantidadNoLeidos"].N, CultureInfo.InvariantCulture),
 				Estado = Enum.Parse<EstadoConversacion>(item["Estado"].S),
-				FechaUltimaEntrada = item["FechaUltimaEntrada"].S == null ? null : DateTime.ParseExact(item["FechaUltimaEntrada"].S, "o", CultureInfo.InvariantCulture),
-				PuedeResponderGratuitoHasta = item["PuedeResponderGratuitoHasta"].S == null ? null : DateTime.ParseExact(item["PuedeResponderGratuitoHasta"].S, "o", CultureInfo.InvariantCulture)
+				FechaUltimaEntrada = item["FechaUltimaEntrada"].S == null ? null : DateTime.ParseExact(item["FechaUltimaEntrada"].S, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+				PuedeResponderGratuitoHasta = item["PuedeResponderGratuitoHasta"].S == null ? null : DateTime.ParseExact(item["PuedeResponderGratuitoHasta"].S, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)
 			};
 		}
 	}

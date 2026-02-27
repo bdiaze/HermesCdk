@@ -21,7 +21,7 @@ namespace LibreriaCompartida.Entities.DynamoDB {
 		public string? RawPayload { get; set; }
 
 		public override string PK => $"TENANT#{TenantId}#CONVERSACION#{NumeroTelefono}";
-		public override string SK => $"MENSAJE#{FechaCreacion.ToString("o", CultureInfo.InvariantCulture)}#WHATSAPPMESSAGEID#{WhatsappMessageId}";
+		public override string SK => $"MENSAJE#{FechaCreacion.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}#WHATSAPPMESSAGEID#{WhatsappMessageId}";
 
 		public override string? GSI1PK => null;
 		public override string? GSI1SK => null;
@@ -38,7 +38,7 @@ namespace LibreriaCompartida.Entities.DynamoDB {
 					{ "Cuerpo", new AttributeValue { NULL = true } },
 					{ "NombreTemplate", new AttributeValue { NULL = true } },
 					{ "Estado", new AttributeValue { S = $"{Estado}" } },
-					{ "FechaCreacion", new AttributeValue { S = $"{FechaCreacion.ToString("o", CultureInfo.InvariantCulture)}" } },
+					{ "FechaCreacion", new AttributeValue { S = $"{FechaCreacion.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" } },
 					{ "RawPayload", new AttributeValue { NULL = true } },
 				}
 			).ToDictionary();
@@ -68,7 +68,7 @@ namespace LibreriaCompartida.Entities.DynamoDB {
 				Cuerpo = item["Cuerpo"].S,
 				NombreTemplate = item["NombreTemplate"].S,
 				Estado = Enum.Parse<EstadoMensaje>(item["Estado"].S),
-				FechaCreacion = DateTime.ParseExact(item["FechaCreacion"].S, "o", CultureInfo.InvariantCulture),
+				FechaCreacion = DateTime.ParseExact(item["FechaCreacion"].S, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
 				RawPayload = item["RawPayload"].S
 			};
 		}
