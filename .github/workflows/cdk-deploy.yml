@@ -64,13 +64,13 @@ jobs:
                     yum install -y dotnet-sdk-8.0 gcc zlib-devel && 
                     cd ./${{ vars.AOT_MINIMAL_API_DIRECTORY }} && 
                     dotnet publish /p:PublishDir=../publish /p:PublishAot=true -r linux-x64 --self-contained &&
-                    chown -R $(id -u):$(id -g) /src/${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}/${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}/bin &&
-                    chown -R $(id -u):$(id -g) /src/${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}/${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}/obj &&
-                    chown -R $(id -u):$(id -g) /src/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/bin &&
-                    chown -R $(id -u):$(id -g) /src/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/obj &&
-                    chown -R $(id -u):$(id -g) /src/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/publish &&
                     cd ./publish &&
                     zip -r -T ./publish.zip ./*"
+                    
+            - name: Clean projects
+              run: |
+                  dotnet clean ${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}
+                  dotnet clean ${{ vars.AOT_MINIMAL_API_DIRECTORY }}
                     
             - name: Publish .NET Lambda
               working-directory: ${{ vars.WORKER_DIRECTORY }}
