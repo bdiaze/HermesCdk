@@ -125,7 +125,7 @@ namespace LambdaWorker {
 
 							// Y se registra mensaje en la conversación con el usuario...
 							await conversacionHelper.RegistrarNuevoMensajeSalida(
-								itemDynamo.TryGetValue("AppName", out object? appName) ? (string)appName! : "General",
+								whatsapp.De,
 								whatsapp.Para,
 								idMensajeWhatsapp,
 								TipoMensaje.Template,

@@ -87,13 +87,40 @@ namespace LibreriaCompartida.Helpers {
 				TableName = TABLE_NAME,
 				Key = conversacion.Key,
 				UpdateExpression = $"SET " +
-					$"{nameof(conversacion.FechaUltimoMensaje)} = :{nameof(conversacion.FechaUltimoMensaje)}, " +
-					$"{nameof(conversacion.PreviewUltimoMensaje)} = :{nameof(conversacion.PreviewUltimoMensaje)}, " +
-					$"{nameof(conversacion.GSI1SK)} = :{nameof(conversacion.GSI1SK)}",
+					$"{nameof(conversacion.FechaUltimoMensaje)} = :FECHAULTIMOMENSAJE, " +
+					$"{nameof(conversacion.PreviewUltimoMensaje)} = :PREVIEWULTIMOMENSAJE, " +
+					$"{nameof(conversacion.GSI1SK)} = :GSI1SK",
 				ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
-					{ $":{nameof(conversacion.FechaUltimoMensaje)}", new AttributeValue { S = fechaEnvio.ToString("o", CultureInfo.InvariantCulture) } },
-					{ $":{nameof(conversacion.PreviewUltimoMensaje)}", new AttributeValue { S = previewUltimoMensaje } },
-					{ $":{nameof(conversacion.GSI1SK)}", new AttributeValue { S = fechaEnvio.ToString("o", CultureInfo.InvariantCulture) } },
+					{ ":FECHAULTIMOMENSAJE", new AttributeValue { S = fechaEnvio.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture) } },
+					{ ":PREVIEWULTIMOMENSAJE", new AttributeValue { S = previewUltimoMensaje } },
+					{ ":GSI1SK", new AttributeValue { S = $"FECHAULTIMOMENSAJE#{fechaEnvio.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" } },
+				}
+			});
+
+			if (response.HttpStatusCode != System.Net.HttpStatusCode.OK) {
+				throw new Exception("Ocurrió un error al actualizar el ítem de Dynamo");
+			}
+		}
+
+		public async Task ActualizarMetadataPosteriorARecepcion(ConversacionMetadata conversacion, string previewUltimoMensaje, DateTime fechaRecepcion) {
+			UpdateItemResponse response = await client.UpdateItemAsync(new UpdateItemRequest {
+				TableName = TABLE_NAME,
+				Key = conversacion.Key,
+				UpdateExpression = $"SET " +
+					$"{nameof(conversacion.FechaUltimoMensaje)} = :FECHAULTIMOMENSAJE, " +
+					$"{nameof(conversacion.PreviewUltimoMensaje)} = :PREVIEWULTIMOMENSAJE, " +
+					$"{nameof(conversacion.CantidadNoLeidos)} = if_not_exists({nameof(conversacion.CantidadNoLeidos)}, :CERO) + :UNIDAD, " +
+					$"{nameof(conversacion.FechaUltimaEntrada)} = :FECHAULTIMAENTRADA, " +
+					$"{nameof(conversacion.PuedeResponderGratuitoHasta)} = :PUEDERESPONDERGRATUITOHASTA, " +
+					$"{nameof(conversacion.GSI1SK)} = :GSI1SK",
+				ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
+					{ ":FECHAULTIMOMENSAJE", new AttributeValue { S = fechaRecepcion.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture) } },
+					{ ":PREVIEWULTIMOMENSAJE", new AttributeValue { S = previewUltimoMensaje } },
+					{ ":CERO", new AttributeValue { N = "0" } },
+					{ ":UNIDAD", new AttributeValue { N = "1" } },
+					{ ":FECHAULTIMAENTRADA", new AttributeValue { S = fechaRecepcion.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture) } },
+					{ ":PUEDERESPONDERGRATUITOHASTA", new AttributeValue { S = fechaRecepcion.AddHours(24).ToUniversalTime().ToString("o", CultureInfo.InvariantCulture) } },
+					{ ":GSI1SK", new AttributeValue { S = $"FECHAULTIMOMENSAJE#{fechaRecepcion.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" } },
 				}
 			});
 
@@ -134,6 +161,37 @@ namespace LibreriaCompartida.Helpers {
 				}
 			}
 			await ActualizarMetadataPosteriorAEnvio(metadata, previewMensaje, fechaMensaje);
+		}
+
+		public async Task RegistrarNuevoMensajeEntrada(string tenantId, string numeroTelefono, string whatsappMessageId, TipoMensaje tipo, string? cuerpo, string? rawPayload, DateTime fechaMensaje) {
+			ConversacionMetadata metadata = await ObtenerOCrearMetadata(tenantId, numeroTelefono, fechaMensaje);
+			ConversacionMensaje mensaje = new() {
+				TenantId = tenantId,
+				NumeroTelefono = numeroTelefono,
+				WhatsappMessageId = whatsappMessageId,
+				Direccion = DireccionMensaje.Entrada,
+				Tipo = tipo,
+				Cuerpo = cuerpo,
+				NombreTemplate = null,
+				Estado = EstadoMensaje.Recibido,
+				FechaCreacion = fechaMensaje,
+				RawPayload = rawPayload,
+			};
+
+			await InsertarMensaje(mensaje);
+
+			string previewMensaje;
+			if (cuerpo == null) {
+				previewMensaje = "El mensaje no cuenta con una vista previa.";
+			} else {
+				const int MAX_LARGO = 40;
+				previewMensaje = cuerpo[..Math.Min(MAX_LARGO, cuerpo.Length)];
+				if (previewMensaje != cuerpo) {
+					previewMensaje += "...";
+				}
+			}
+
+			await ActualizarMetadataPosteriorARecepcion(metadata, previewMensaje, fechaMensaje);
 		}
 
 		public async Task<ConversacionMensaje?> ObtenerMensajePorId(string whatsappMessageId) {

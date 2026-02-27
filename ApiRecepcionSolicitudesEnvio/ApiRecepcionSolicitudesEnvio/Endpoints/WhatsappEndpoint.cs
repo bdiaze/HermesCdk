@@ -2,17 +2,18 @@
 using Amazon.Runtime.Internal.Transform;
 using Amazon.SQS;
 using Amazon.SQS.Model;
-using LibreriaCompartida.Enums.DynamoDB;
 using ApiRecepcionSolicitudesEnvio.Helpers;
 using ApiRecepcionSolicitudesEnvio.Models;
+using LibreriaCompartida.Enums.DynamoDB;
+using LibreriaCompartida.Helpers;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Globalization;
+using System.Net.NetworkInformation;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using LibreriaCompartida.Helpers;
 
 namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 	public static class WhatsappEndpoint {
@@ -28,7 +29,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 		}
 
 		private static IEndpointRouteBuilder MapEnviarEndpoint(this IEndpointRouteBuilder routes) {
-			routes.MapPost("/Enviar/{appName?}", async (string? appName, Whatsapp whatsapp, IAmazonSQS sqsClient, VariableEntornoHelper variableEntorno, DynamoHelper dynamo) => {
+			routes.MapPost("/Enviar", async (Whatsapp whatsapp, IAmazonSQS sqsClient, VariableEntornoHelper variableEntorno, DynamoHelper dynamo) => {
 				Stopwatch stopwatch = Stopwatch.StartNew();
 
 				try {
@@ -49,10 +50,6 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 						["Contenido"] = jsonContenido,
 						["FechaCreacion"] = DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture),
 					};
-
-					if (appName != null) {
-						itemDynamo["AppName"] = appName;
-					}
 
 					await dynamo.Insertar(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), itemDynamo);
 
@@ -174,7 +171,37 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 					foreach (Entry entry in webhook.Entry) {
 						foreach (Change change in entry.Changes) {
 							foreach (Models.Message message in change.Value.Messages ?? []) {
-								// Sin lógica para procesar mensajes recibidos...
+								// Se registra el mensaje recepcionado en la conversación...
+								try {
+									await conversacionHelper.RegistrarNuevoMensajeEntrada(
+										change.Value.Metadata.PhoneNumberId,
+										message.From,
+										message.Id,
+										message.Type switch {
+											"text" => TipoMensaje.Texto,
+											"template" => TipoMensaje.Template,
+											"image" => TipoMensaje.Imagen,
+											"video" => TipoMensaje.Video,
+											"audio" => TipoMensaje.Audio,
+											"document" => TipoMensaje.Documento,
+											"location" => TipoMensaje.Ubicacion,
+											"contacts" => TipoMensaje.Contacto,
+											"sticker" => TipoMensaje.Sticker,
+											_ => TipoMensaje.Unknown
+										},
+										message.Type switch {
+											"text" => message.Text?.Body,
+											_ => null
+										},
+										JsonSerializer.Serialize(message, AppJsonSerializerContext.Default.Message),
+										DateTimeOffset.FromUnixTimeSeconds(long.Parse(message.Timestamp)).UtcDateTime
+									);
+								} catch (Exception ex) {
+									LambdaLogger.Log(
+										$"[POST] - [/Whatsapp/webhook] - [{stopwatch.ElapsedMilliseconds} ms] - " +
+										$"Ocurrió un error al ingresar el mensaje en conversación - Message ID: {message.Id}. ",
+										$"{ex}");
+								}
 							}
 
 							foreach (Estado status in change.Value.Statuses ?? []) {

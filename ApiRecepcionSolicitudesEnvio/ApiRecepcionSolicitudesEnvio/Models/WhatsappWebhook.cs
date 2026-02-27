@@ -29,11 +29,22 @@ namespace ApiRecepcionSolicitudesEnvio.Models {
 		[JsonPropertyName("messaging_product")]
 		public required string MessagingProduct { get; set; }
 
+		[JsonPropertyName("metadata")]
+		public required Metadata Metadata { get; set; }
+
 		[JsonPropertyName("messages")]
 		public List<Message>? Messages { get; set; }
 
 		[JsonPropertyName("statuses")]
 		public List<Estado>? Statuses { get; set; }
+	}
+
+	public class Metadata {
+		[JsonPropertyName("display_phone_number")]
+		public required string DisplayPhoneNumber { get; set; }
+
+		[JsonPropertyName("phone_number_id")]
+		public required string PhoneNumberId { get; set; }
 	}
 
 	public class Message {

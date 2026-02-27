@@ -19,6 +19,7 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
 	[JsonSerializable(typeof(Entry))]
 	[JsonSerializable(typeof(Change))]
 	[JsonSerializable(typeof(Value))]
+	[JsonSerializable(typeof(Metadata))]
 	[JsonSerializable(typeof(Message))]
 	[JsonSerializable(typeof(Text))]
 	[JsonSerializable(typeof(Button))]
