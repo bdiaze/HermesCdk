@@ -4,8 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LambdaWorker.Enums.DynamoDB {
-	internal enum TipoMensaje {
+namespace LibreriaCompartida.Enums.DynamoDB {
+	public enum TipoMensaje {
 		Texto = 1,
 		Template = 2,
 		Boton = 3,

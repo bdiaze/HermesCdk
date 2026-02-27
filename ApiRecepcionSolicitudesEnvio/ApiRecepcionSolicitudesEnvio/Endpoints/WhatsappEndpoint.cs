@@ -2,7 +2,7 @@
 using Amazon.Runtime.Internal.Transform;
 using Amazon.SQS;
 using Amazon.SQS.Model;
-using ApiRecepcionSolicitudesEnvio.Enums.DynamoDB;
+using LibreriaCompartida.Enums.DynamoDB;
 using ApiRecepcionSolicitudesEnvio.Helpers;
 using ApiRecepcionSolicitudesEnvio.Models;
 using Microsoft.AspNetCore.Http.Features;
@@ -12,6 +12,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using LibreriaCompartida.Helpers;
 
 namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 	public static class WhatsappEndpoint {

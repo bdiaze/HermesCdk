@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ApiRecepcionSolicitudesEnvio.Enums.DynamoDB {
+namespace LibreriaCompartida.Enums.DynamoDB {
 	public enum EstadoMensaje {
 		Recibido = 1,
 		Enviado = 2,

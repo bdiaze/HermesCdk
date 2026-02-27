@@ -1,4 +1,12 @@
-﻿namespace ApiRecepcionSolicitudesEnvio.Helpers {
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LibreriaCompartida.Helpers {
     public class VariableEntornoHelper(IHostEnvironment env, IConfiguration config) {
         public string Obtener(string nombre) {
             if (env.IsDevelopment()) {

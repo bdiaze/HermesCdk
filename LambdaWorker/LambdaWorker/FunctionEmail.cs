@@ -6,6 +6,7 @@ using Amazon.SimpleEmailV2.Model;
 using Amazon.SimpleSystemsManagement;
 using LambdaWorker.Helpers;
 using LambdaWorker.Models;
+using LibreriaCompartida.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;

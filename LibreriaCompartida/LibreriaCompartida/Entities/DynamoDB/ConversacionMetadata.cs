@@ -1,6 +1,6 @@
 ﻿using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.Model;
-using ApiRecepcionSolicitudesEnvio.Enums.DynamoDB;
+using LibreriaCompartida.Enums.DynamoDB;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ApiRecepcionSolicitudesEnvio.Entities.DynamoDB {
+namespace LibreriaCompartida.Entities.DynamoDB {
 	public class ConversacionMetadata : Base {
 		public required string TenantId { get; set; }
 		public required string NumeroTelefono { get; set; }
@@ -23,10 +23,11 @@ namespace ApiRecepcionSolicitudesEnvio.Entities.DynamoDB {
 		public override string SK => $"METADATA";
 
 		public override string? GSI1PK => $"TENANT#{TenantId}";
-		public override string? GSI1SK => $"{FechaUltimoMensaje.ToString("o", CultureInfo.InvariantCulture)}";
+		public override string? GSI1SK => $"FECHAULTIMOMENSAJE#{FechaUltimoMensaje.ToString("o", CultureInfo.InvariantCulture)}";
+		public override string? GSI2PK => null;
 
 		public override Dictionary<string, AttributeValue> ToItem() {
-			Dictionary<string, AttributeValue> item = this.Key.Concat(this.GSI1Attributes).Concat(
+			Dictionary<string, AttributeValue> item = this.Key.Concat(this.GSI1Attributes).Concat(this.GSI2Attributes).Concat(
 				new Dictionary<string, AttributeValue>() {
 					{ "TenantId", new AttributeValue { S = $"{TenantId}" } },
 					{ "NumeroTelefono", new AttributeValue { S = $"{NumeroTelefono}" } },

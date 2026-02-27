@@ -25,6 +25,9 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\LibreriaCompartida\LibreriaCompartida\LibreriaCompartida.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <None Update="appsettings.Development.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <DependentUpon>appsettings.json</DependentUpon>
