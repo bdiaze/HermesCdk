@@ -32,6 +32,8 @@ jobs:
             WORKER_LAMBDA_HANDLER_WHATSAPP: ${{ vars.WORKER_LAMBDA_HANDLER_WHATSAPP }}
             WORKER_LAMBDA_MEMORY_SIZE: ${{ vars.WORKER_LAMBDA_MEMORY_SIZE }}
             WORKER_LAMBDA_TIMEOUT: ${{ vars.WORKER_LAMBDA_TIMEOUT }}
+            
+            LIBRERIA_COMPARTIDA_DIRECTORY: ${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}
                      
             NOTIFICATION_EMAILS: ${{ vars.NOTIFICATION_EMAILS }}
                         
@@ -58,10 +60,15 @@ jobs:
                                                         
             - name: Publish .NET AoT Minimal API
               run: |
-                  docker run --rm -u $(id -u):$(id -g) -v ${{ github.workspace }}:/src -w /src public.ecr.aws/amazonlinux/amazonlinux:2023 \bash -c "
+                  docker run --rm -v ${{ github.workspace }}:/src -w /src public.ecr.aws/amazonlinux/amazonlinux:2023 \bash -c "
                     yum install -y dotnet-sdk-8.0 gcc zlib-devel && 
                     cd ./${{ vars.AOT_MINIMAL_API_DIRECTORY }} && 
                     dotnet publish /p:PublishDir=../publish /p:PublishAot=true -r linux-x64 --self-contained &&
+                    chown -R $(id -u):$(id -g) /src/${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}/${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}/bin &&
+                    chown -R $(id -u):$(id -g) /src/${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}/${{ vars.LIBRERIA_COMPARTIDA_DIRECTORY }}/obj &&
+                    chown -R $(id -u):$(id -g) /src/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/bin &&
+                    chown -R $(id -u):$(id -g) /src/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/obj &&
+                    chown -R $(id -u):$(id -g) /src/${{ vars.AOT_MINIMAL_API_DIRECTORY }}/publish &&
                     cd ./publish &&
                     zip -r -T ./publish.zip ./*"
                     
