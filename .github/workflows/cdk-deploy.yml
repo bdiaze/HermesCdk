@@ -72,6 +72,9 @@ jobs:
                     cd ./publish &&
                     zip -r -T ./publish.zip ./*"
                     
+            - name: Restore NuGet packages
+              run: dotnet restore ${{ vars.AOT_MINIMAL_API_DIRECTORY }}
+                    
             - name: Clean projects before Lambda build
               run: |
                   dotnet clean ${{ vars.AOT_MINIMAL_API_DIRECTORY }}
