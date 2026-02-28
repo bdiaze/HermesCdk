@@ -196,6 +196,9 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 										},
 										message.Type switch {
 											"text" => message.Text?.Body,
+											"image" => message.Image?.Caption,
+											"video" => message.Video?.Caption,
+											"document" => message.Document?.Caption,
 											_ => null
 										},
 										JsonSerializer.Serialize(message, AppJsonSerializerContext.Default.Message),

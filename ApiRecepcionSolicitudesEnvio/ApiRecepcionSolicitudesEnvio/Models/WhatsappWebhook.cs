@@ -63,6 +63,27 @@ namespace ApiRecepcionSolicitudesEnvio.Models {
 		[JsonPropertyName("text")]
 		public Text? Text { get; set; }
 
+		[JsonPropertyName("image")]
+		public MediaInfo? Image { get; set; }
+
+		[JsonPropertyName("video")]
+		public MediaInfo? Video { get; set; }
+
+		[JsonPropertyName("audio")]
+		public MediaInfo? Audio { get; set; }
+
+		[JsonPropertyName("document")]
+		public MediaInfo? Document { get; set; }
+
+		[JsonPropertyName("sticker")]
+		public MediaInfo? Sticker { get; set; }
+
+		[JsonPropertyName("location")]
+		public Location? Location { get; set; }
+
+		[JsonPropertyName("contacts")]
+		public List<Contact>? Contacts { get; set; }
+
 		[JsonPropertyName("button")]
 		public Button? Button { get; set; }
 	}
@@ -70,6 +91,56 @@ namespace ApiRecepcionSolicitudesEnvio.Models {
 	public class Text {
 		[JsonPropertyName("body")]
 		public required string Body { get; set; }
+	}
+
+	public class MediaInfo {
+		[JsonPropertyName("id")]
+		public required string Id { get; set; }
+
+		[JsonPropertyName("mime_type")]
+		public required string MimeType { get; set; }
+
+		[JsonPropertyName("sha256")]
+		public required string Sha256 { get; set; }
+
+		[JsonPropertyName("caption")]
+		public string? Caption { get; set; }
+	}
+
+	public class Location {
+		[JsonPropertyName("latitude")]
+		public required double Latitude { get; set; }
+
+		[JsonPropertyName("longitude")]
+		public required double Longitude { get; set; }
+
+		[JsonPropertyName("name")]
+		public string? Name { get; set; }
+
+		[JsonPropertyName("address")]
+		public string? Address { get; set; }
+	}
+
+	public class Contact {
+		[JsonPropertyName("name")]
+		public required ContactName Name { get; set; }
+
+		[JsonPropertyName("phones")]
+		public required List<ContactPhone> Phones { get; set; }
+
+	}
+
+	public class ContactName {
+		[JsonPropertyName("formatted_name")]
+		public required string FormattedName { get; set; }
+	}
+
+	public class ContactPhone {
+		[JsonPropertyName("phone")]
+		public required string Phone { get; set; }
+
+		[JsonPropertyName("type")]
+		public string? Type { get; set; }
 	}
 
 	public class Button {
