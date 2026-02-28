@@ -298,7 +298,7 @@ namespace HermesCdk {
 									Actions = [
 										"s3:GetObject",
 										"s3:PutObject",
-										"s3:HeadObject",
+										"s3:ListBucket",
 									],
 									Resources = [
 										$"{bucket.BucketArn}/*",
