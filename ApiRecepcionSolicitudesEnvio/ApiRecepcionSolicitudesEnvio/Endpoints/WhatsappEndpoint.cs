@@ -4,6 +4,7 @@ using Amazon.SQS;
 using Amazon.SQS.Model;
 using ApiRecepcionSolicitudesEnvio.Helpers;
 using ApiRecepcionSolicitudesEnvio.Models;
+using LibreriaCompartida.Entities.DynamoDB;
 using LibreriaCompartida.Enums.DynamoDB;
 using LibreriaCompartida.Helpers;
 using Microsoft.AspNetCore.Http.Features;
@@ -20,6 +21,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 		public static IEndpointRouteBuilder MapWhatsappEndpoints(this IEndpointRouteBuilder routes) {
 			RouteGroupBuilder group = routes.MapGroup("/Whatsapp");
 			group.MapEnviarEndpoint();
+			group.MapObtenerMediaEndpoint();
 
 			RouteGroupBuilder publicGroup = routes.MapGroup("/public/Whatsapp");
 			publicGroup.MapWebhookGetEndpoint();
@@ -95,6 +97,51 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 
 		}
 
+		private static IEndpointRouteBuilder MapObtenerMediaEndpoint(this IEndpointRouteBuilder routes) {
+			routes.MapGet("/Media/{whatsappMessageId}", async (string whatsappMessageId, VariableEntornoHelper variableEntorno, ConversacionHelper conversacionHelper, WhatsappHelper whatsappHelper) => {
+				Stopwatch stopwatch = Stopwatch.StartNew();
+
+				try {
+					ConversacionMensaje? mensaje = await conversacionHelper.ObtenerMensajePorId(whatsappMessageId);
+					if (mensaje == null || mensaje.RawPayload == null) {
+						LambdaLogger.Log(
+							$"[GET] - [/Whatsapp/Media] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status400BadRequest}] - " +
+							$"Message ID de Whatsapp inválido.");
+
+						return Results.BadRequest("Message ID de Whatsapp inválido.");
+					}
+					Models.Message raw = JsonSerializer.Deserialize(mensaje.RawPayload, AppJsonSerializerContext.Default.Message)!;
+
+					MediaInfo mediaInfo = mensaje.Tipo switch {
+						TipoMensaje.Imagen => raw.Image!,
+						TipoMensaje.Video => raw.Video!,
+						TipoMensaje.Audio => raw.Audio!,
+						TipoMensaje.Documento => raw.Document!,
+						TipoMensaje.Sticker => raw.Sticker!,
+						_ => throw new Exception($"No se puede obtener media de un mensaje de tipo {mensaje.Tipo}")
+					};
+
+					(Stream stream, string contentType, string fileName) = await whatsappHelper.ObtenerMedia(mediaInfo.Id);
+
+					LambdaLogger.Log(
+						$"[GET] - [/Whatsapp/Media] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
+						$"Media del mensaje de Whatsapp ID {whatsappMessageId} reenviado exitosamente.");
+
+					return Results.File(stream, contentType, fileName);
+				} catch (Exception ex) {
+					LambdaLogger.Log(
+						$"[GET] - [/Whatsapp/Media] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status500InternalServerError}] - " +
+						$"Ocurrio un error al reenviar media del mensaje de Whatsapp - ID: {whatsappMessageId}. " +
+						$"{ex}");
+
+					return Results.Problem("Ocurrió un error al procesar su solicitud de envío de correo.");
+				}
+			});
+
+			return routes;
+
+		}
+
 		private static IEndpointRouteBuilder MapWebhookGetEndpoint(this IEndpointRouteBuilder routes) {
 			routes.MapGet("/webhook", async ([FromQuery(Name = "hub.mode")] string mode, [FromQuery(Name = "hub.verify_token")] string verifyToken, [FromQuery(Name = "hub.challenge")] string challenge, VariableEntornoHelper variableEntorno, SecretManagerHelper secretManagerHelper) => {
 				Stopwatch stopwatch = Stopwatch.StartNew();
@@ -139,7 +186,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 					// Se valida que venga la cabecera con signature...
 					if (string.IsNullOrEmpty(xHubSignature256)) {
 						LambdaLogger.Log(
-							$"[POST] - [/Whatsapp/webhook] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
+							$"[POST] - [/Whatsapp/webhook] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status401Unauthorized}] - " +
 							$"No se incluye header X-Hub-Signature-256.");
 						
 						return Results.Unauthorized();
@@ -160,7 +207,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 					string receivedSignature = xHubSignature256.Replace("sha256=", "");
 					if (!CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expectedSignature), Encoding.UTF8.GetBytes(receivedSignature))) {
 						LambdaLogger.Log(
-							$"[POST] - [/Whatsapp/webhook] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
+							$"[POST] - [/Whatsapp/webhook] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status401Unauthorized}] - " +
 							$"La signature no es válida.");
 
 						return Results.Unauthorized();

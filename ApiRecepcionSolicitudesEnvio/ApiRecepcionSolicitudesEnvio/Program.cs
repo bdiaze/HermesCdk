@@ -37,6 +37,7 @@ builder.Services.AddSingleton<VariableEntornoHelper>();
 builder.Services.AddSingleton<SecretManagerHelper>();
 builder.Services.AddSingleton<DynamoHelper>();
 builder.Services.AddSingleton<ConversacionHelper>();
+builder.Services.AddSingleton<WhatsappHelper>();
 #endregion
 
 var app = builder.Build();

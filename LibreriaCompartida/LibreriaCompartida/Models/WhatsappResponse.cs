@@ -5,13 +5,13 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace LambdaWorker.Models {
-	internal class WhatsappResponse {
+namespace LibreriaCompartida.Models {
+	public class WhatsappResponse {
 		[JsonPropertyName("messages")]
 		public List<MessageInfo>? Messages { get; set; }
 	}
 
-	internal class MessageInfo {
+	public class MessageInfo {
 		[JsonPropertyName("id")]
 		public string? Id { get; set; }
 	}

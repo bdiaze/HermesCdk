@@ -1,9 +1,13 @@
 ﻿using Amazon.SecretsManager;
 using Amazon.SecretsManager.Model;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace ApiRecepcionSolicitudesEnvio.Helpers {
+namespace LibreriaCompartida.Helpers {
 	public class SecretManagerHelper(IAmazonSecretsManager client) {
-
 		private readonly Dictionary<string, string> secretsValues = [];
 
 		public async Task<string> ObtenerSecreto(string secretArn) {

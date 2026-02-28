@@ -2,6 +2,7 @@
 using ApiRecepcionSolicitudesEnvio.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
+using LibreriaCompartida.Models;
 
 namespace ApiRecepcionSolicitudesEnvio.Helpers {
 
