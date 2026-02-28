@@ -5,10 +5,11 @@ using Amazon.SecretsManager;
 using Amazon.SimpleEmailV2;
 using Amazon.SimpleEmailV2.Model;
 using Amazon.SimpleSystemsManagement;
-using LibreriaCompartida.Enums.DynamoDB;
-using LibreriaCompartida.Helpers;
 using LambdaWorker.Helpers;
 using LambdaWorker.Models;
+using LibreriaCompartida.Enums.DynamoDB;
+using LibreriaCompartida.Helpers;
+using LibreriaCompartida.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
@@ -35,6 +36,7 @@ namespace LambdaWorker {
 				services.AddSingleton<SecretManagerHelper>();
 				services.AddSingleton<DynamoHelper>();
 				services.AddSingleton<ConversacionHelper>();
+				services.AddSingleton<IJsonSerializer, DefaultJsonSerializer>();
 				services.AddHttpClient<WhatsappHelper>(client => {
 					client.BaseAddress = new Uri("https://graph.facebook.com/");
 					client.Timeout = TimeSpan.FromSeconds(30);

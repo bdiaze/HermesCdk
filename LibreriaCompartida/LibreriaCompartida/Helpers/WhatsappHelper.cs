@@ -1,4 +1,5 @@
 ﻿using LibreriaCompartida.Helpers;
+using LibreriaCompartida.Interfaces;
 using LibreriaCompartida.Models;
 using System;
 using System.Collections.Generic;
@@ -12,7 +13,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace LibreriaCompartida.Helpers {
-	public class WhatsappHelper(VariableEntornoHelper variableEntorno, SecretManagerHelper secretManagerHelper, HttpClient httpClient) {
+	public class WhatsappHelper(VariableEntornoHelper variableEntorno, SecretManagerHelper secretManagerHelper, HttpClient httpClient, IJsonSerializer jsonSerializer) {
 		public async Task<(string whatsappIdMessage, object payload)> Enviar(string idNumeroTelefono, string para, string nombreTemplate, string lenguaje, string[]? parametrosHeader, string[]? parametrosBody, string[]? parametrosButton) {
 			List<object> componentes = [];
 			if (parametrosHeader != null && parametrosHeader.Length > 0) {
@@ -49,7 +50,7 @@ namespace LibreriaCompartida.Helpers {
 				}
 			};
 
-			Dictionary<string, string> secretApp = JsonSerializer.Deserialize<Dictionary<string, string>>(await secretManagerHelper.ObtenerSecreto(variableEntorno.Obtener("SECRET_ARN_APP")))!;
+			Dictionary<string, string> secretApp = jsonSerializer.DeserializeDictionaryStringString(await secretManagerHelper.ObtenerSecreto(variableEntorno.Obtener("SECRET_ARN_APP")))!;
 
 			httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", secretApp["WhatsappToken"]);
 			HttpResponseMessage response = await httpClient.PostAsJsonAsync($"v25.0/{idNumeroTelefono}/messages", payload);
@@ -58,12 +59,13 @@ namespace LibreriaCompartida.Helpers {
 				throw new Exception($"Ocurrió un error con API de Whatsapp - Status Code: {response.StatusCode} - Content: {responseContent}");
 			}
 
-			WhatsappResponse? result = JsonSerializer.Deserialize<WhatsappResponse>(responseContent);
+			WhatsappResponse? result = jsonSerializer.DeserializeWhatsappResponse(responseContent);
 			return (result?.Messages?.FirstOrDefault()?.Id ?? throw new Exception("Whatsapp no retornó el ID del mensaje."), payload);
 		}
 
 		public async Task<(Stream stream, string contentType, string fileName)> ObtenerMedia(string mediaId) {
-			Dictionary<string, string> secretApp = JsonSerializer.Deserialize<Dictionary<string, string>>(await secretManagerHelper.ObtenerSecreto(variableEntorno.Obtener("SECRET_ARN_APP")))!;
+			string secret = await secretManagerHelper.ObtenerSecreto(variableEntorno.Obtener("SECRET_ARN_APP"));
+			Dictionary<string, string> secretApp = jsonSerializer.DeserializeDictionaryStringString(secret)!;
 
 			httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", secretApp["WhatsappToken"]);
 			HttpResponseMessage response = await httpClient.GetAsync($"v25.0/{mediaId}");
@@ -71,7 +73,7 @@ namespace LibreriaCompartida.Helpers {
 			if (!response.IsSuccessStatusCode) {
 				throw new Exception($"Ocurrió un error al obtener URL de descarga de media desde API de Whatsapp - Status Code: {response.StatusCode} - Content: {responseContent}");
 			}
-			Dictionary<string, object> mediaResponse = JsonSerializer.Deserialize<Dictionary<string, object>>(responseContent)!;
+			Dictionary<string, object> mediaResponse = jsonSerializer.DeserializeDictionaryStringObject(responseContent)!;
 
 			HttpResponseMessage responseGetMedia = await httpClient.GetAsync((string)mediaResponse["url"], HttpCompletionOption.ResponseHeadersRead);
 			if (!responseGetMedia.IsSuccessStatusCode) {

@@ -9,6 +9,7 @@ using ApiRecepcionSolicitudesEnvio.Endpoints;
 using ApiRecepcionSolicitudesEnvio.Helpers;
 using ApiRecepcionSolicitudesEnvio.Models;
 using LibreriaCompartida.Helpers;
+using LibreriaCompartida.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Diagnostics;
@@ -37,6 +38,7 @@ builder.Services.AddSingleton<VariableEntornoHelper>();
 builder.Services.AddSingleton<SecretManagerHelper>();
 builder.Services.AddSingleton<DynamoHelper>();
 builder.Services.AddSingleton<ConversacionHelper>();
+builder.Services.AddSingleton<IJsonSerializer, AotJsonSerializer>();
 builder.Services.AddHttpClient<WhatsappHelper>(client => {
 	client.BaseAddress = new Uri("https://graph.facebook.com/");
 	client.Timeout = TimeSpan.FromSeconds(30);

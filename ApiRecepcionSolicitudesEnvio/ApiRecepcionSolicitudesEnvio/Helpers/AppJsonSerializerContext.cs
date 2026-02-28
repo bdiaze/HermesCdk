@@ -17,6 +17,7 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
 	[JsonSerializable(typeof(Dictionary<string, string>))]
 	[JsonSerializable(typeof(Whatsapp))]
     [JsonSerializable(typeof(WhatsappWebhook))]
+	[JsonSerializable(typeof(WhatsappResponse))]
 	[JsonSerializable(typeof(Entry))]
 	[JsonSerializable(typeof(Change))]
 	[JsonSerializable(typeof(Value))]
