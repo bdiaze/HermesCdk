@@ -207,6 +207,34 @@ namespace HermesCdk {
 					Type = AttributeType.STRING
 				}
 			});
+            #endregion
+
+            #region Bucket
+            Bucket bucket = new(this, $"{appName}Bucket", new BucketProps {
+				BucketName = $"{appName.ToLowerInvariant()}-whatsapp-media",
+				BlockPublicAccess = BlockPublicAccess.BLOCK_ALL,
+				Versioned = false,
+				EnforceSSL = true,
+				Cors = [
+					new CorsRule {
+						AllowedHeaders = ["*"],
+						AllowedOrigins = ["*"],
+						AllowedMethods = [
+							HttpMethods.GET,
+						],
+						MaxAge = 10 * 24 * 60 * 60
+					}
+				],
+				LifecycleRules = [
+					new LifecycleRule {
+						Id = "EliminarObjetos",
+						Enabled = true,
+						Expiration = Duration.Days(14)
+					}
+				],
+				RemovalPolicy = RemovalPolicy.DESTROY,
+				AutoDeleteObjects = false,
+			});
 			#endregion
 
 			#region API Gateway y Lambda
@@ -265,6 +293,17 @@ namespace HermesCdk {
                                         $"{tablaConversacion.TableArn}/*",
 									],
 								}),
+								new PolicyStatement(new PolicyStatementProps{
+									Sid = $"{appName}AccessToS3",
+									Actions = [
+										"s3:GetObject",
+										"s3:PutObject",
+										"s3:HeadObject",
+									],
+									Resources = [
+										$"{bucket.BucketArn}/*",
+									],
+								}),
 							]
                         })
                     }
@@ -289,6 +328,7 @@ namespace HermesCdk {
 					{ "DYNAMODB_TABLE_NAME", tablaMensajes.TableName },
 					{ "DYNAMODB_TABLE_NAME_CONVERSACION", tablaConversacion.TableName },
 					{ "SECRET_ARN_APP", secret.SecretArn },
+					{ "BUCKET_NAME_WHATSAPP_MEDIA", bucket.BucketName }
 				},
                 Role = roleLambda,
             });
