@@ -301,6 +301,7 @@ namespace HermesCdk {
 										"s3:ListBucket",
 									],
 									Resources = [
+										bucket.BucketArn,
 										$"{bucket.BucketArn}/*",
 									],
 								}),
