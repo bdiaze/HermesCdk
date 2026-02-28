@@ -154,8 +154,14 @@ namespace LibreriaCompartida.Helpers {
 					previewMensaje = "El mensaje no cuenta con una vista previa.";
 				} else {
 					const int MAX_LARGO = 40;
-					previewMensaje = cuerpo[..Math.Min(MAX_LARGO, cuerpo.Length)];
-					if (previewMensaje != cuerpo) {
+					int count = 0;
+					previewMensaje = "";
+					TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(cuerpo);
+					while (enumerator.MoveNext() && count < MAX_LARGO) {
+						previewMensaje += enumerator.GetTextElement();
+						count++;
+					}
+					if (count < cuerpo.Length) {
 						previewMensaje += "...";
 					}
 				}
@@ -185,8 +191,14 @@ namespace LibreriaCompartida.Helpers {
 				previewMensaje = "El mensaje no cuenta con una vista previa.";
 			} else {
 				const int MAX_LARGO = 40;
-				previewMensaje = cuerpo[..Math.Min(MAX_LARGO, cuerpo.Length)];
-				if (previewMensaje != cuerpo) {
+				int count = 0;
+				previewMensaje = "";
+				TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(cuerpo);
+				while (enumerator.MoveNext() && count < MAX_LARGO) {
+					previewMensaje += enumerator.GetTextElement();
+					count++;
+				}
+				if (count < cuerpo.Length) {
 					previewMensaje += "...";
 				}
 			}
