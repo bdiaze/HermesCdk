@@ -37,7 +37,10 @@ builder.Services.AddSingleton<VariableEntornoHelper>();
 builder.Services.AddSingleton<SecretManagerHelper>();
 builder.Services.AddSingleton<DynamoHelper>();
 builder.Services.AddSingleton<ConversacionHelper>();
-builder.Services.AddSingleton<WhatsappHelper>();
+builder.Services.AddHttpClient<WhatsappHelper>(client => {
+	client.BaseAddress = new Uri("https://graph.facebook.com/");
+	client.Timeout = TimeSpan.FromSeconds(30);
+});
 #endregion
 
 var app = builder.Build();
