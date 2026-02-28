@@ -105,6 +105,9 @@ namespace ApiRecepcionSolicitudesEnvio.Models {
 
 		[JsonPropertyName("caption")]
 		public string? Caption { get; set; }
+
+		[JsonPropertyName("filename")]
+		public string? Filename { get; set; }
 	}
 
 	public class Location {

@@ -1,6 +1,7 @@
 using Amazon.DynamoDBv2;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
+using Amazon.S3;
 using Amazon.SecretsManager;
 using Amazon.SimpleSystemsManagement;
 using Amazon.SQS;
@@ -31,6 +32,7 @@ builder.Services.AddSingleton<IAmazonSimpleSystemsManagement, AmazonSimpleSystem
 builder.Services.AddSingleton<IAmazonDynamoDB, AmazonDynamoDBClient>();
 builder.Services.AddSingleton<IAmazonSQS, AmazonSQSClient>();
 builder.Services.AddSingleton<IAmazonSecretsManager, AmazonSecretsManagerClient>();
+builder.Services.AddSingleton<IAmazonS3, AmazonS3Client>();
 #endregion
 
 #region Singleton Helpers
@@ -39,6 +41,7 @@ builder.Services.AddSingleton<SecretManagerHelper>();
 builder.Services.AddSingleton<DynamoHelper>();
 builder.Services.AddSingleton<ConversacionHelper>();
 builder.Services.AddSingleton<IJsonSerializer, AotJsonSerializer>();
+builder.Services.AddSingleton<S3Helper>();
 builder.Services.AddHttpClient<WhatsappHelper>(client => {
 	client.BaseAddress = new Uri("https://graph.facebook.com/");
 	client.Timeout = TimeSpan.FromSeconds(30);

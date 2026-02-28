@@ -98,7 +98,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 		}
 
 		private static IEndpointRouteBuilder MapObtenerMediaEndpoint(this IEndpointRouteBuilder routes) {
-			routes.MapGet("/Media/{whatsappMessageId}", async (string whatsappMessageId, VariableEntornoHelper variableEntorno, ConversacionHelper conversacionHelper, WhatsappHelper whatsappHelper) => {
+			routes.MapGet("/Media/{whatsappMessageId}", async (string whatsappMessageId, VariableEntornoHelper variableEntorno, ConversacionHelper conversacionHelper, WhatsappHelper whatsappHelper, S3Helper s3Helper) => {
 				Stopwatch stopwatch = Stopwatch.StartNew();
 
 				try {
@@ -121,13 +121,28 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 						_ => throw new Exception($"No se puede obtener media de un mensaje de tipo {mensaje.Tipo}")
 					};
 
-					(Stream stream, string contentType, string fileName) = await whatsappHelper.ObtenerMedia(mediaInfo.Id);
+					string bucketName = variableEntorno.Obtener("BUCKET_NAME_WHATSAPP_MEDIA");
+
+					if (!await s3Helper.ExisteBucketObject(bucketName, mediaInfo.Id)) {
+						(Stream stream, string contentType, string fileName) = await whatsappHelper.ObtenerMedia(mediaInfo.Id);
+
+						await s3Helper.PutObjectStream(
+							bucketName,
+							mediaInfo.Id,
+							stream,
+							contentType
+						);
+					}
+
+					string presignedUrl = await s3Helper.ObtenerGetPreSignedUrl(bucketName, mediaInfo.Id, mediaInfo.Filename ?? mediaInfo.Id);
 
 					LambdaLogger.Log(
 						$"[GET] - [/Whatsapp/Media] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
 						$"Media del mensaje de Whatsapp ID {whatsappMessageId} reenviado exitosamente.");
 
-					return Results.File(stream, contentType, fileName);
+					return Results.Ok(new SalWhatsappMedia {
+						Url = presignedUrl,
+					});
 				} catch (Exception ex) {
 					LambdaLogger.Log(
 						$"[GET] - [/Whatsapp/Media] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status500InternalServerError}] - " +
