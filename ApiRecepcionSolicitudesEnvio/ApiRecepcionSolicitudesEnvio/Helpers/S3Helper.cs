@@ -30,7 +30,7 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
 			bool existe = true;
 			try {
 				GetObjectMetadataResponse response = await amazonS3.GetObjectMetadataAsync(request);
-			} catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound && ex.ErrorCode == "NoSuchKey") {
+			} catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound && ex.ErrorCode == "NotFound") {
 				existe = false;
 			}
 
