@@ -173,9 +173,14 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 							foreach (Models.Message message in change.Value.Messages ?? []) {
 								// Se registra el mensaje recepcionado en la conversación...
 								try {
+									string numeroTelefono = message.From.Trim().Replace(" ", "");
+									if (!numeroTelefono.StartsWith("+")) {
+										numeroTelefono = $"+{numeroTelefono}";
+									}
+
 									await conversacionHelper.RegistrarNuevoMensajeEntrada(
 										change.Value.Metadata.PhoneNumberId,
-										message.From,
+										numeroTelefono,
 										message.Id,
 										message.Type switch {
 											"text" => TipoMensaje.Texto,
