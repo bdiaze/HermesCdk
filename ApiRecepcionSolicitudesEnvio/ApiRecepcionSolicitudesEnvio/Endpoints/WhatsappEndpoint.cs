@@ -124,14 +124,16 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 					string bucketName = variableEntorno.Obtener("BUCKET_NAME_WHATSAPP_MEDIA");
 
 					if (!await s3Helper.ExisteBucketObject(bucketName, mediaInfo.Id)) {
-						(Stream stream, string contentType, string fileName) = await whatsappHelper.ObtenerMedia(mediaInfo.Id);
+						(Stream stream, string contentType) = await whatsappHelper.ObtenerMedia(mediaInfo.Id);
 
-						await s3Helper.PutObjectStream(
-							bucketName,
-							mediaInfo.Id,
-							stream,
-							contentType
-						);
+						await using (stream) {
+							await s3Helper.PutObjectStream(
+								bucketName,
+								mediaInfo.Id,
+								stream,
+								contentType
+							);
+						}
 					}
 
 					string presignedUrl = await s3Helper.ObtenerGetPreSignedUrl(bucketName, mediaInfo.Id, mediaInfo.Filename ?? mediaInfo.Id);

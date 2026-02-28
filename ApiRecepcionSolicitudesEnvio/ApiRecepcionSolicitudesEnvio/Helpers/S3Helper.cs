@@ -1,5 +1,6 @@
 ﻿using Amazon.S3;
 using Amazon.S3.Model;
+using Amazon.S3.Transfer;
 using Amazon.SQS;
 using System.Net;
 
@@ -38,9 +39,10 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
 		}
 
 		public async Task PutObjectStream(string bucketName, string bucketKey, Stream stream, string contentType) {
-			await amazonS3.PutObjectAsync(new PutObjectRequest {
+			TransferUtility transferUtility = new(amazonS3);
+			await transferUtility.UploadAsync(new TransferUtilityUploadRequest() {
 				BucketName = bucketName,
-				Key= bucketKey,
+				Key = bucketKey,
 				InputStream = stream,
 				ContentType = contentType
 			});

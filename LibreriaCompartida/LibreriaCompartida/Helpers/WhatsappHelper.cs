@@ -63,7 +63,7 @@ namespace LibreriaCompartida.Helpers {
 			return (result?.Messages?.FirstOrDefault()?.Id ?? throw new Exception("Whatsapp no retornó el ID del mensaje."), payload);
 		}
 
-		public async Task<(Stream stream, string contentType, string fileName)> ObtenerMedia(string mediaId) {
+		public async Task<(Stream stream, string contentType)> ObtenerMedia(string mediaId) {
 			string secret = await secretManagerHelper.ObtenerSecreto(variableEntorno.Obtener("SECRET_ARN_APP"));
 			Dictionary<string, string> secretApp = jsonSerializer.DeserializeDictionaryStringString(secret)!;
 
@@ -80,10 +80,9 @@ namespace LibreriaCompartida.Helpers {
 				throw new Exception($"Ocurrió un error al descargar media desde API de Whatsapp - Status Code: {response.StatusCode} - Content: {responseContent}");
 			}
 
-			string fileName = mediaResponse.FileName ?? $"media_{mediaId}";
-			string contentType = responseGetMedia.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
 			Stream stream = await responseGetMedia.Content.ReadAsStreamAsync();
-			return (stream, contentType, fileName);
+			string contentType = responseGetMedia.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+			return (stream, contentType);
 		}
 	}
 }
