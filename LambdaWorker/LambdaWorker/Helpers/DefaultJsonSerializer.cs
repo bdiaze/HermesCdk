@@ -17,6 +17,10 @@ namespace LambdaWorker.Helpers {
 			return JsonSerializer.Deserialize<Dictionary<string, string>>(json)!;
 		}
 
+		public WhatsappMediaResponse DeserializeWhatsappMediaResponse(string json) {
+			return JsonSerializer.Deserialize<WhatsappMediaResponse>(json)!;
+		}
+
 		public WhatsappResponse DeserializeWhatsappResponse(string json) {
 			return JsonSerializer.Deserialize<WhatsappResponse>(json)!;
 		}

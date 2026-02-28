@@ -10,5 +10,6 @@ namespace LibreriaCompartida.Interfaces {
 		Dictionary<string, string> DeserializeDictionaryStringString(string json);
 		Dictionary<string, object> DeserializeDictionaryStringObject(string json);
 		WhatsappResponse DeserializeWhatsappResponse(string json);
+		WhatsappMediaResponse DeserializeWhatsappMediaResponse(string json);
 	}
 }

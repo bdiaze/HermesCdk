@@ -73,14 +73,14 @@ namespace LibreriaCompartida.Helpers {
 			if (!response.IsSuccessStatusCode) {
 				throw new Exception($"Ocurrió un error al obtener URL de descarga de media desde API de Whatsapp - Status Code: {response.StatusCode} - Content: {responseContent}");
 			}
-			Dictionary<string, object> mediaResponse = jsonSerializer.DeserializeDictionaryStringObject(responseContent)!;
+			WhatsappMediaResponse mediaResponse = jsonSerializer.DeserializeWhatsappMediaResponse(responseContent)!;
 
-			HttpResponseMessage responseGetMedia = await httpClient.GetAsync((string)mediaResponse["url"], HttpCompletionOption.ResponseHeadersRead);
+			HttpResponseMessage responseGetMedia = await httpClient.GetAsync(mediaResponse.Url, HttpCompletionOption.ResponseHeadersRead);
 			if (!responseGetMedia.IsSuccessStatusCode) {
 				throw new Exception($"Ocurrió un error al descargar media desde API de Whatsapp - Status Code: {response.StatusCode} - Content: {responseContent}");
 			}
 
-			string fileName = mediaResponse.TryGetValue("file_name", out object? name) ? (string)name! : $"media_{mediaId}";
+			string fileName = mediaResponse.FileName ?? $"media_{mediaId}";
 			string contentType = responseGetMedia.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
 			Stream stream = await responseGetMedia.Content.ReadAsStreamAsync();
 			return (stream, contentType, fileName);

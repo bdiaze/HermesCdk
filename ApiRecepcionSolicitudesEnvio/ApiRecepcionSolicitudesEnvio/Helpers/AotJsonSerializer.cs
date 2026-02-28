@@ -12,6 +12,10 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
 			return JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.DictionaryStringString)!;
 		}
 
+		public WhatsappMediaResponse DeserializeWhatsappMediaResponse(string json) {
+			return JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.WhatsappMediaResponse)!;
+		}
+
 		public WhatsappResponse DeserializeWhatsappResponse(string json) {
 			return JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.WhatsappResponse)!;
 		}
