@@ -279,9 +279,10 @@ namespace LibreriaCompartida.Helpers {
 		public async Task<List<ConversacionMensaje>> ObtenerMensajes(string tenantId, string numeroTelefono, DateTime? desde = null, DateTime? hasta = null, int limit = 50) {
 			QueryRequest request = new() {
 				TableName = TABLE_NAME,
-				KeyConditionExpression = $"PK = :pk",
+				KeyConditionExpression = $"PK = :pk AND begins_with(SK, :prefijoMensaje)",
 				ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
-					{ ":pk", new AttributeValue { S = $"TENANT#{tenantId}#CONVERSACION#{numeroTelefono}" } }
+					{ ":pk", new AttributeValue { S = $"TENANT#{tenantId}#CONVERSACION#{numeroTelefono}" } },
+					{ ":prefijoMensaje", new AttributeValue { S = "MENSAJE#" } }
 				},
 				ScanIndexForward = false,
 				Limit = limit
