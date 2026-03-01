@@ -307,5 +307,23 @@ namespace LibreriaCompartida.Helpers {
 			QueryResponse response = await client.QueryAsync(request);
 			return [.. response.Items.Select(item => ConversacionMensaje.FromItem(item))];
 		}
+
+		public async Task ResetearCantidadNoLeidos(string tenantId, string numeroTelefono) {
+			UpdateItemResponse response = await client.UpdateItemAsync(new UpdateItemRequest {
+				TableName = TABLE_NAME,
+				Key = new Dictionary<string, AttributeValue> {
+					{ "PK", new AttributeValue() { S = $"TENANT#{tenantId}#CONVERSACION#{numeroTelefono}" } },
+					{ "SK", new AttributeValue() { S = $"METADATA" } }
+				},
+				UpdateExpression = $"SET CantidadNoLeidos = :CERO",
+				ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
+					{ ":CERO", new AttributeValue { N = "0" } }
+				}
+			});
+
+			if (response.HttpStatusCode != System.Net.HttpStatusCode.OK) {
+				throw new Exception("Ocurrió un error al actualizar el ítem de Dynamo");
+			}
+		}
 	}
 }

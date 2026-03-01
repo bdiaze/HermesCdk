@@ -221,6 +221,8 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 						RawPayload = mensaje.RawPayload
 					})];
 
+					await conversacionHelper.ResetearCantidadNoLeidos(tenantId, numeroTelefono);
+
 					LambdaLogger.Log(
 						$"[GET] - [/Whatsapp/Mensajes] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
 						$"Se obtiene exitosamente los mensajes de una conversacion de Whatsapp - Tenant ID: {tenantId} - Numero Telefono: {numeroTelefono} - Cant. Conversaciones: {retorno.Count}.");
