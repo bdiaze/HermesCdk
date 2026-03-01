@@ -89,7 +89,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 						variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
 						new Dictionary<string, object?> { ["IdMensaje"] = (string)itemDynamo["IdMensaje"]! },
 						"SET Estado = :Estado, QueueMessageId = :QueueMessageId",
-						null,
+						"attribute_exists(IdMensaje)",
 						new Dictionary<string, object> {
 							{ ":Estado", "InsertadoColaEnvio" },
 							{ ":QueueMessageId", response.MessageId },
@@ -229,6 +229,11 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 
 				try {
 					List<ConversacionMensaje> mensajes = await conversacionHelper.ObtenerMensajes(tenantId, numeroTelefono, desde, hasta);
+
+					if (mensajes.Count > 0) {
+						await conversacionHelper.ResetearCantidadNoLeidos(tenantId, numeroTelefono);
+					}
+
 					List<SalWhatsappMensaje> retorno = [.. mensajes.Select(mensaje => new SalWhatsappMensaje {
 						TenantId = mensaje.TenantId,
 						NumeroTelefono = mensaje.NumeroTelefono,
@@ -241,8 +246,6 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 						FechaCreacion = mensaje.FechaCreacion,
 						RawPayload = mensaje.RawPayload
 					})];
-
-					await conversacionHelper.ResetearCantidadNoLeidos(tenantId, numeroTelefono);
 
 					LambdaLogger.Log(
 						$"[GET] - [/Whatsapp/Mensajes] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
@@ -419,9 +422,9 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 												variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
 												new Dictionary<string, object?> { ["IdMensaje"] = (string)mensaje["IdMensaje"]! },
 												"SET FechaConfirmacionEnvio = :FechaConfirmacionEnvio",
-												null,
+												"attribute_exists(IdMensaje)",
 												new Dictionary<string, object> {
-												{ ":FechaConfirmacionEnvio", fechaStatus.ToString("o", CultureInfo.InvariantCulture) }
+													{ ":FechaConfirmacionEnvio", fechaStatus.ToString("o", CultureInfo.InvariantCulture) }
 												}
 											);
 										} else if (status.Status == "delivered") {
@@ -429,9 +432,9 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 												variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
 												new Dictionary<string, object?> { ["IdMensaje"] = (string)mensaje["IdMensaje"]! },
 												"SET FechaEntrega = :FechaEntrega",
-												null,
+												"attribute_exists(IdMensaje)",
 												new Dictionary<string, object> {
-												{ ":FechaEntrega", fechaStatus.ToString("o", CultureInfo.InvariantCulture) }
+													{ ":FechaEntrega", fechaStatus.ToString("o", CultureInfo.InvariantCulture) }
 												}
 											);
 										} else if (status.Status == "read") {
@@ -439,9 +442,9 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 												variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
 												new Dictionary<string, object?> { ["IdMensaje"] = (string)mensaje["IdMensaje"]! },
 												"SET FechaLectura = :FechaLectura",
-												null,
+												"attribute_exists(IdMensaje)",
 												new Dictionary<string, object> {
-												{ ":FechaLectura", fechaStatus.ToString("o", CultureInfo.InvariantCulture) }
+													{ ":FechaLectura", fechaStatus.ToString("o", CultureInfo.InvariantCulture) }
 												}
 											);
 										} else if (status.Status == "failed") {
@@ -449,7 +452,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 												variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
 												new Dictionary<string, object?> { ["IdMensaje"] = (string)mensaje["IdMensaje"]! },
 												"SET FechaFallo = :FechaFallo, Error = :Error",
-												null,
+												"attribute_exists(IdMensaje)",
 												new Dictionary<string, object> {
 													{ ":FechaFallo", fechaStatus.ToString("o", CultureInfo.InvariantCulture) },
 													{ ":Error", JsonSerializer.Serialize(status.Errors ?? [], AppJsonSerializerContext.Default.ListError) }

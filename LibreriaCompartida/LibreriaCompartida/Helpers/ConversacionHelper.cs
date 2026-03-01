@@ -94,7 +94,8 @@ namespace LibreriaCompartida.Helpers {
 					{ ":FECHAULTIMOMENSAJE", new AttributeValue { S = fechaEnvio.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture) } },
 					{ ":PREVIEWULTIMOMENSAJE", new AttributeValue { S = previewUltimoMensaje } },
 					{ ":GSI1SK", new AttributeValue { S = $"FECHAULTIMOMENSAJE#{fechaEnvio.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" } },
-				}
+				},
+				ConditionExpression = "attribute_exists(PK) AND attribute_exists(SK)"
 			});
 
 			if (response.HttpStatusCode != System.Net.HttpStatusCode.OK) {
@@ -121,7 +122,8 @@ namespace LibreriaCompartida.Helpers {
 					{ ":FECHAULTIMAENTRADA", new AttributeValue { S = fechaRecepcion.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture) } },
 					{ ":PUEDERESPONDERGRATUITOHASTA", new AttributeValue { S = fechaRecepcion.AddHours(24).ToUniversalTime().ToString("o", CultureInfo.InvariantCulture) } },
 					{ ":GSI1SK", new AttributeValue { S = $"FECHAULTIMOMENSAJE#{fechaRecepcion.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" } },
-				}
+				},
+				ConditionExpression = "attribute_exists(PK) AND attribute_exists(SK)"
 			});
 
 			if (response.HttpStatusCode != System.Net.HttpStatusCode.OK) {
@@ -240,7 +242,8 @@ namespace LibreriaCompartida.Helpers {
 				UpdateExpression = $"SET {nameof(existente.Estado)} = :{nameof(existente.Estado)}",
 				ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
 					{ $":{nameof(existente.Estado)}", new AttributeValue { S = $"{nuevoEstado}" } }
-				}
+				},
+				ConditionExpression = "attribute_exists(PK) AND attribute_exists(SK)"
 			});
 		}
 
@@ -325,7 +328,8 @@ namespace LibreriaCompartida.Helpers {
 				UpdateExpression = $"SET CantidadNoLeidos = :CERO",
 				ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
 					{ ":CERO", new AttributeValue { N = "0" } }
-				}
+				},
+				ConditionExpression = "attribute_exists(PK) AND attribute_exists(SK)"
 			});
 
 			if (response.HttpStatusCode != System.Net.HttpStatusCode.OK) {

@@ -55,7 +55,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 						variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
 						new Dictionary<string, object?> { ["IdMensaje"] = (string)itemDynamo["IdMensaje"]! },
 						"SET Estado = :Estado, QueueMessageId = :QueueMessageId",
-						null,
+						"attribute_exists(IdMensaje)",
 						new Dictionary<string, object> {
 							{ ":Estado", "InsertadoColaEnvio" },
 							{ ":QueueMessageId", response.MessageId },
