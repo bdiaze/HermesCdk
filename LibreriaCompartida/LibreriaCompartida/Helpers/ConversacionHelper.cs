@@ -279,25 +279,29 @@ namespace LibreriaCompartida.Helpers {
 		}
 
 		public async Task<List<ConversacionMensaje>> ObtenerMensajes(string tenantId, string numeroTelefono, DateTime? desde = null, DateTime? hasta = null, int limit = 50) {
-			string keyCondition = "PK = :pk AND begins_with(SK, :prefijoMensaje)";
+			string keyCondition = "PK = :pk";
 			Dictionary<string, AttributeValue> expressionValues = new() {
 				{ ":pk", new AttributeValue { S = $"TENANT#{tenantId}#CONVERSACION#{numeroTelefono}" } },
-				{ ":prefijoMensaje", new AttributeValue { S = "MENSAJE#" } }
 			};
 
-			if (desde.HasValue || hasta.HasValue) {
-				if (desde.HasValue && hasta.HasValue) {
-					keyCondition += " AND SK BETWEEN :desde AND :hasta";
-					expressionValues[":desde"] = new AttributeValue { S = $"MENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
-					expressionValues[":hasta"] = new AttributeValue { S = $"MENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
-				} else if (desde.HasValue) {
-					keyCondition += " AND SK >= :desde";
-					expressionValues[":desde"] = new AttributeValue { S = $"MENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
-				} else if (hasta.HasValue) {
-					keyCondition += " AND SK <= :hasta";
-					expressionValues[":hasta"] = new AttributeValue { S = $"MENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
-				}
+			string desdeKey;
+			string hastaKey;
+
+			if (desde.HasValue) {
+				desdeKey = $"MENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}";
+			} else {
+				desdeKey = "MENSAJE#";
 			}
+
+			if (hasta.HasValue) {
+				hastaKey = $"MENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}";
+			} else {
+				hastaKey = "MENSAJE#\uFFFF";
+			}
+
+			keyCondition += " AND SK BETWEEN :desde AND :hasta";
+			expressionValues[":desde"] = new AttributeValue { S = desdeKey };
+			expressionValues[":hasta"] = new AttributeValue { S = hastaKey };
 
 			QueryRequest request = new() {
 				TableName = TABLE_NAME,
