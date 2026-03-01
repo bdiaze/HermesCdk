@@ -1,4 +1,4 @@
-﻿namespace ApiRecepcionSolicitudesEnvio.Models {
+﻿namespace LibreriaCompartida.Models {
     public class Correo {
         public DireccionCorreo? De { get; set; }
         public required List<DireccionCorreo> Para { get; set; }

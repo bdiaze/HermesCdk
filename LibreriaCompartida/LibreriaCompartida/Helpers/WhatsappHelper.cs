@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace LibreriaCompartida.Helpers {
 	public class WhatsappHelper(VariableEntornoHelper variableEntorno, SecretManagerHelper secretManagerHelper, HttpClient httpClient, IJsonSerializer jsonSerializer) {
-		public async Task<(string whatsappIdMessage, object payload)> Enviar(string idNumeroTelefono, string para, string nombreTemplate, string lenguaje, string[]? parametrosHeader, string[]? parametrosBody, string[]? parametrosButton) {
+		public async Task<(string whatsappIdMessage, object payload)> EnviarTemplate(string idNumeroTelefono, string para, string nombreTemplate, string lenguaje, string[]? parametrosHeader, string[]? parametrosBody, string[]? parametrosButton) {
 			List<object> componentes = [];
 			if (parametrosHeader != null && parametrosHeader.Length > 0) {
 				componentes.Add(new {
@@ -56,7 +56,30 @@ namespace LibreriaCompartida.Helpers {
 			using HttpResponseMessage response = await httpClient.PostAsJsonAsync($"v25.0/{idNumeroTelefono}/messages", payload);
 			string responseContent = await response.Content.ReadAsStringAsync();
 			if (!response.IsSuccessStatusCode) {
-				throw new Exception($"Ocurrió un error con API de Whatsapp - Status Code: {response.StatusCode} - Content: {responseContent}");
+				throw new Exception($"Ocurrió un error con API de Whatsapp al enviar template - Status Code: {response.StatusCode} - Content: {responseContent}");
+			}
+
+			WhatsappResponse? result = jsonSerializer.DeserializeWhatsappResponse(responseContent);
+			return (result?.Messages?.FirstOrDefault()?.Id ?? throw new Exception("Whatsapp no retornó el ID del mensaje."), payload);
+		}
+
+		public async Task<(string whatsappIdMessage, object payload)> EnviarTexto(string idNumeroTelefono, string para, string cuerpo) {		
+			object payload = new {
+				messaging_product = "whatsapp",
+				to = para,
+				type = "text",
+				text = new {
+					body = cuerpo
+				}
+			};
+
+			Dictionary<string, string> secretApp = jsonSerializer.DeserializeDictionaryStringString(await secretManagerHelper.ObtenerSecreto(variableEntorno.Obtener("SECRET_ARN_APP")))!;
+
+			httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", secretApp["WhatsappToken"]);
+			using HttpResponseMessage response = await httpClient.PostAsJsonAsync($"v25.0/{idNumeroTelefono}/messages", payload);
+			string responseContent = await response.Content.ReadAsStringAsync();
+			if (!response.IsSuccessStatusCode) {
+				throw new Exception($"Ocurrió un error con API de Whatsapp al enviar mensaje de texto - Status Code: {response.StatusCode} - Content: {responseContent}");
 			}
 
 			WhatsappResponse? result = jsonSerializer.DeserializeWhatsappResponse(responseContent);

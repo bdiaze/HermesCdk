@@ -7,6 +7,7 @@ using ApiRecepcionSolicitudesEnvio.Models;
 using LibreriaCompartida.Entities.DynamoDB;
 using LibreriaCompartida.Enums.DynamoDB;
 using LibreriaCompartida.Helpers;
+using LibreriaCompartida.Models;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
@@ -38,6 +39,24 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 				Stopwatch stopwatch = Stopwatch.StartNew();
 
 				try {
+					// Se valida que el mensaje incluya template o cuerpo...
+					if (whatsapp.NombreTemplate == null && whatsapp.Cuerpo == null) {
+						LambdaLogger.Log(
+							$"[POST] - [/Whatsapp/Enviar] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status400BadRequest}] - " +
+							$"No se incluyó el nombre de template ni el cuerpo del mensaje.");
+
+						return Results.BadRequest("No se incluyó el nombre de template ni el cuerpo del mensaje.");
+					}
+
+					// Se valida que el mensaje no incluya el template y el cuerpo al mismo tiempo...
+					if (whatsapp.NombreTemplate != null && whatsapp.Cuerpo != null) {
+						LambdaLogger.Log(
+							$"[POST] - [/Whatsapp/Enviar] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status400BadRequest}] - " +
+							$"Solo se puede incluir el nombre del template o el cuerpo, no ambos.");
+
+						return Results.BadRequest("Solo se puede incluir el nombre del template o el cuerpo, no ambos.");
+					}
+
 					// Se genera un ID único...
 					string idMensaje = Guid.NewGuid().ToString();
 					while ((await dynamo.Obtener(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), new Dictionary<string, object?> { ["IdMensaje"] = idMensaje })) != null) {

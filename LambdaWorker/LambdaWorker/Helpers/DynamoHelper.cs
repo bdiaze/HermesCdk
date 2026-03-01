@@ -1,7 +1,6 @@
 ﻿using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Amazon.SimpleEmailV2.Model;
-using LambdaWorker.Models;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

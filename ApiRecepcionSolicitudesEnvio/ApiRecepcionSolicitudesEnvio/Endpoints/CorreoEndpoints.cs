@@ -4,6 +4,7 @@ using Amazon.SQS.Model;
 using ApiRecepcionSolicitudesEnvio.Helpers;
 using ApiRecepcionSolicitudesEnvio.Models;
 using LibreriaCompartida.Helpers;
+using LibreriaCompartida.Models;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;

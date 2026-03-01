@@ -6,10 +6,10 @@ using Amazon.SimpleEmailV2;
 using Amazon.SimpleEmailV2.Model;
 using Amazon.SimpleSystemsManagement;
 using LambdaWorker.Helpers;
-using LambdaWorker.Models;
 using LibreriaCompartida.Enums.DynamoDB;
 using LibreriaCompartida.Helpers;
 using LibreriaCompartida.Interfaces;
+using LibreriaCompartida.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
@@ -98,16 +98,27 @@ namespace LambdaWorker {
 					switch ((string)tipoMensaje) {
 						case "Whatsapp":
 							Whatsapp whatsapp = JsonSerializer.Deserialize<Whatsapp>((string)contenido)!;
-
-							(string idMensajeWhatsapp, object payload) = await whatsappHelper.Enviar(
-								whatsapp.De, 
-								whatsapp.Para, 
-								whatsapp.NombreTemplate, 
-								whatsapp.Lenguaje, 
-								whatsapp.ParametrosTitulo, 
-								whatsapp.ParametrosCuerpo, 
-								whatsapp.ParametrosBoton
-							);
+							string idMensajeWhatsapp;
+							object payload;
+							if (whatsapp.NombreTemplate != null) {
+								(idMensajeWhatsapp, payload) = await whatsappHelper.EnviarTemplate(
+									whatsapp.De,
+									whatsapp.Para,
+									whatsapp.NombreTemplate,
+									whatsapp.Lenguaje,
+									whatsapp.ParametrosTitulo,
+									whatsapp.ParametrosCuerpo,
+									whatsapp.ParametrosBoton
+								);
+							} else if (whatsapp.Cuerpo != null) {
+								(idMensajeWhatsapp, payload) = await whatsappHelper.EnviarTexto(
+									whatsapp.De,
+									whatsapp.Para,
+									whatsapp.Cuerpo
+								);
+							} else {
+								throw new Exception("El mensaje de Whatsapp no incluye nombre de template ni cuerpo.");
+							}
 
 							DateTime fechaEnvio = DateTime.UtcNow;
 
