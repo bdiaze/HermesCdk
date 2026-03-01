@@ -5,12 +5,12 @@ namespace ApiRecepcionSolicitudesEnvio.Models {
 		public required string TenantId { get; set; }
 		public required string NumeroTelefono { get; set; }
 		public required string WhatsappMessageId { get; set; }
-		public DireccionMensaje Direccion { get; set; }
-		public TipoMensaje Tipo { get; set; }
+		public required string Direccion { get; set; }
+		public required string Tipo { get; set; }
 		public string? Cuerpo { get; set; }
 		public string? NombreTemplate { get; set; }
-		public EstadoMensaje Estado { get; set; }
-		public DateTime FechaCreacion { get; set; }
+		public required string Estado { get; set; }
+		public required DateTime FechaCreacion { get; set; }
 		public string? RawPayload { get; set; }
 	}
 }

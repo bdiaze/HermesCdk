@@ -212,11 +212,11 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 						TenantId = mensaje.TenantId,
 						NumeroTelefono = mensaje.NumeroTelefono,
 						WhatsappMessageId = mensaje.WhatsappMessageId,
-						Direccion = mensaje.Direccion,
-						Tipo = mensaje.Tipo,
+						Direccion = mensaje.Direccion.ToString(),
+						Tipo = mensaje.Tipo.ToString(),
 						Cuerpo = mensaje.Cuerpo,
 						NombreTemplate = mensaje.NombreTemplate,
-						Estado = mensaje.Estado,
+						Estado = mensaje.Estado.ToString(),
 						FechaCreacion = mensaje.FechaCreacion,
 						RawPayload = mensaje.RawPayload
 					})];
