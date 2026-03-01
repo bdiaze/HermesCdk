@@ -243,5 +243,37 @@ namespace LibreriaCompartida.Helpers {
 				}
 			});
 		}
+
+		public async Task<List<ConversacionMetadata>> ObtenerConversacionesMetadata(string tenantId, DateTime? desde = null, DateTime? hasta = null, int limit = 50) {
+			QueryRequest request = new() {
+				TableName = TABLE_NAME,
+				IndexName = "GSI1",
+				KeyConditionExpression = $"GSI1PK = :TenantId",
+				ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
+					{ ":TenantId", new AttributeValue { S = $"TENANT#{tenantId}" } }
+				},
+				ScanIndexForward = false,
+				Limit = limit
+			};
+
+			if (desde.HasValue || hasta.HasValue) {
+				string rangeExp = "";
+				if (desde.HasValue && hasta.HasValue) {
+					rangeExp = "GSI1SK BETWEEN :desde AND :hasta";
+					request.ExpressionAttributeValues[":desde"] = new AttributeValue { S = $"FECHAULTIMOMENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+					request.ExpressionAttributeValues[":hasta"] = new AttributeValue { S = $"FECHAULTIMOMENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+				} else if (desde.HasValue) {
+					rangeExp = "GSI1SK >= :desde";
+					request.ExpressionAttributeValues[":desde"] = new AttributeValue { S = $"FECHAULTIMOMENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+				} else if (hasta.HasValue) {
+					rangeExp = "GSI1SK <= :hasta";
+					request.ExpressionAttributeValues[":hasta"] = new AttributeValue { S = $"FECHAULTIMOMENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+				}
+				request.FilterExpression = rangeExp;
+			}
+
+			QueryResponse response = await client.QueryAsync(request);
+			return [.. response.Items.Select(item => ConversacionMetadata.FromItem(item))];
+		}
 	}
 }

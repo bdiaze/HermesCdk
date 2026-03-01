@@ -22,6 +22,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 			RouteGroupBuilder group = routes.MapGroup("/Whatsapp");
 			group.MapEnviarEndpoint();
 			group.MapObtenerMediaEndpoint();
+			group.MapObtenerConversaciones();
 
 			RouteGroupBuilder publicGroup = routes.MapGroup("/public/Whatsapp");
 			publicGroup.MapWebhookGetEndpoint();
@@ -153,6 +154,33 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 					LambdaLogger.Log(
 						$"[GET] - [/Whatsapp/Media] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status500InternalServerError}] - " +
 						$"Ocurrio un error al reenviar media del mensaje de Whatsapp - ID: {whatsappMessageId}. " +
+						$"{ex}");
+
+					return Results.Problem("Ocurrió un error al procesar su solicitud de envío de correo.");
+				}
+			});
+
+			return routes;
+
+		}
+
+
+		private static IEndpointRouteBuilder MapObtenerConversaciones(this IEndpointRouteBuilder routes) {
+			routes.MapGet("/Conversaciones/{tenantId}/{desde?}/{hasta?}", async (string tenantId, DateTime? desde, DateTime? hasta, VariableEntornoHelper variableEntorno, ConversacionHelper conversacionHelper) => {
+				Stopwatch stopwatch = Stopwatch.StartNew();
+
+				try {
+					List<ConversacionMetadata> retorno = await conversacionHelper.ObtenerConversacionesMetadata(tenantId, desde, hasta);
+
+					LambdaLogger.Log(
+						$"[GET] - [/Whatsapp/ObtenerMetadataConversaciones] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
+						$"Se obtiene exitosamente la metadata de las conversaciones de Whatsapp - Tenant ID: {tenantId} - Cant. Conversaciones: {retorno.Count}.");
+
+					return Results.Ok(retorno);
+				} catch (Exception ex) {
+					LambdaLogger.Log(
+						$"[GET] - [/Whatsapp/ObtenerMetadataConversaciones] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status500InternalServerError}] - " +
+						$"Ocurrio un error al obtener la metadata de las conversaciones de Whatsapp - Tenant ID: {tenantId}. " +
 						$"{ex}");
 
 					return Results.Problem("Ocurrió un error al procesar su solicitud de envío de correo.");

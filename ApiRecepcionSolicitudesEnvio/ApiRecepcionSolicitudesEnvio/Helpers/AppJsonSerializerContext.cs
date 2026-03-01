@@ -3,6 +3,7 @@ using ApiRecepcionSolicitudesEnvio.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
 using LibreriaCompartida.Models;
+using LibreriaCompartida.Entities.DynamoDB;
 
 namespace ApiRecepcionSolicitudesEnvio.Helpers {
 
@@ -20,6 +21,8 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
 	[JsonSerializable(typeof(WhatsappWebhook))]
 	[JsonSerializable(typeof(WhatsappResponse))]
 	[JsonSerializable(typeof(WhatsappMediaResponse))]
+	[JsonSerializable(typeof(List<ConversacionMetadata>))]
+	[JsonSerializable(typeof(List<ConversacionMensaje>))]
 	[JsonSerializable(typeof(Entry))]
 	[JsonSerializable(typeof(Change))]
 	[JsonSerializable(typeof(Value))]
