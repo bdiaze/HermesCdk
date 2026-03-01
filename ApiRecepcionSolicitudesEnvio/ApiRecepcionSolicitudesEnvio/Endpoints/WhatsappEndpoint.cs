@@ -23,6 +23,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 			group.MapEnviarEndpoint();
 			group.MapObtenerMediaEndpoint();
 			group.MapObtenerConversaciones();
+			group.MapObtenerMensajes();
 
 			RouteGroupBuilder publicGroup = routes.MapGroup("/public/Whatsapp");
 			publicGroup.MapWebhookGetEndpoint();
@@ -170,13 +171,8 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 				Stopwatch stopwatch = Stopwatch.StartNew();
 
 				try {
-					List<ConversacionMetadata> retorno = await conversacionHelper.ObtenerConversacionesMetadata(tenantId, desde, hasta);
-
-					LambdaLogger.Log(
-						$"[GET] - [/Whatsapp/ObtenerMetadataConversaciones] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
-						$"Se obtiene exitosamente la metadata de las conversaciones de Whatsapp - Tenant ID: {tenantId} - Cant. Conversaciones: {retorno.Count}.");
-
-					return Results.Ok(retorno.Select(conversacion => new SalWhatsappConversacion {
+					List<ConversacionMetadata> conversaciones = await conversacionHelper.ObtenerConversaciones(tenantId, desde, hasta);
+					List<SalWhatsappConversacion> retorno = [.. conversaciones.Select(conversacion => new SalWhatsappConversacion {
 						TenantId = conversacion.TenantId,
 						NumeroTelefono = conversacion.NumeroTelefono,
 						FechaUltimoMensaje = conversacion.FechaUltimoMensaje,
@@ -185,11 +181,55 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 						Estado = conversacion.Estado,
 						FechaUltimaEntrada = conversacion.FechaUltimaEntrada,
 						PuedeResponderGratuitoHasta = conversacion.PuedeResponderGratuitoHasta
-					}).ToList());
+					})];
+
+					LambdaLogger.Log(
+						$"[GET] - [/Whatsapp/Conversaciones] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
+						$"Se obtienen exitosamente las conversaciones de Whatsapp - Tenant ID: {tenantId} - Cant. Conversaciones: {retorno.Count}.");
+
+					return Results.Ok(retorno);
 				} catch (Exception ex) {
 					LambdaLogger.Log(
-						$"[GET] - [/Whatsapp/ObtenerMetadataConversaciones] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status500InternalServerError}] - " +
-						$"Ocurrio un error al obtener la metadata de las conversaciones de Whatsapp - Tenant ID: {tenantId}. " +
+						$"[GET] - [/Whatsapp/Conversaciones] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status500InternalServerError}] - " +
+						$"Ocurrio un error al obtener las conversaciones de Whatsapp - Tenant ID: {tenantId}. " +
+						$"{ex}");
+
+					return Results.Problem("Ocurrió un error al procesar su solicitud de envío de correo.");
+				}
+			});
+
+			return routes;
+
+		}
+
+		private static IEndpointRouteBuilder MapObtenerMensajes(this IEndpointRouteBuilder routes) {
+			routes.MapGet("/Mensajes/{tenantId}/{numeroTelefono}/{desde?}/{hasta?}", async (string tenantId, string numeroTelefono, DateTime? desde, DateTime? hasta, VariableEntornoHelper variableEntorno, ConversacionHelper conversacionHelper) => {
+				Stopwatch stopwatch = Stopwatch.StartNew();
+
+				try {
+					List<ConversacionMensaje> mensajes = await conversacionHelper.ObtenerMensajes(tenantId, numeroTelefono, desde, hasta);
+					List<SalWhatsappMensaje> retorno = [.. mensajes.Select(mensaje => new SalWhatsappMensaje {
+						TenantId = mensaje.TenantId,
+						NumeroTelefono = mensaje.NumeroTelefono,
+						WhatsappMessageId = mensaje.WhatsappMessageId,
+						Direccion = mensaje.Direccion,
+						Tipo = mensaje.Tipo,
+						Cuerpo = mensaje.Cuerpo,
+						NombreTemplate = mensaje.NombreTemplate,
+						Estado = mensaje.Estado,
+						FechaCreacion = mensaje.FechaCreacion,
+						RawPayload = mensaje.RawPayload
+					})];
+
+					LambdaLogger.Log(
+						$"[GET] - [/Whatsapp/Mensajes] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
+						$"Se obtiene exitosamente los mensajes de una conversacion de Whatsapp - Tenant ID: {tenantId} - Numero Telefono: {numeroTelefono} - Cant. Conversaciones: {retorno.Count}.");
+
+					return Results.Ok(retorno);
+				} catch (Exception ex) {
+					LambdaLogger.Log(
+						$"[GET] - [/Whatsapp/Mensajes] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status500InternalServerError}] - " +
+						$"Ocurrio un error al obtener los mensajes de una conversacion de Whatsapp - Tenant ID: {tenantId} - Numero Telefono: {numeroTelefono}. " +
 						$"{ex}");
 
 					return Results.Problem("Ocurrió un error al procesar su solicitud de envío de correo.");

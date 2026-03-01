@@ -22,7 +22,7 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
 	[JsonSerializable(typeof(WhatsappResponse))]
 	[JsonSerializable(typeof(WhatsappMediaResponse))]
 	[JsonSerializable(typeof(List<SalWhatsappConversacion>))]
-	[JsonSerializable(typeof(List<ConversacionMensaje>))]
+	[JsonSerializable(typeof(List<SalWhatsappMensaje>))]
 	[JsonSerializable(typeof(Entry))]
 	[JsonSerializable(typeof(Change))]
 	[JsonSerializable(typeof(Value))]

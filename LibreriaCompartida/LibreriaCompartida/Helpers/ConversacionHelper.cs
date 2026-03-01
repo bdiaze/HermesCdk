@@ -244,7 +244,7 @@ namespace LibreriaCompartida.Helpers {
 			});
 		}
 
-		public async Task<List<ConversacionMetadata>> ObtenerConversacionesMetadata(string tenantId, DateTime? desde = null, DateTime? hasta = null, int limit = 50) {
+		public async Task<List<ConversacionMetadata>> ObtenerConversaciones(string tenantId, DateTime? desde = null, DateTime? hasta = null, int limit = 50) {
 			QueryRequest request = new() {
 				TableName = TABLE_NAME,
 				IndexName = "GSI1",
@@ -274,6 +274,37 @@ namespace LibreriaCompartida.Helpers {
 
 			QueryResponse response = await client.QueryAsync(request);
 			return [.. response.Items.Select(item => ConversacionMetadata.FromItem(item))];
+		}
+
+		public async Task<List<ConversacionMensaje>> ObtenerMensajes(string tenantId, string numeroTelefono, DateTime? desde = null, DateTime? hasta = null, int limit = 50) {
+			QueryRequest request = new() {
+				TableName = TABLE_NAME,
+				KeyConditionExpression = $"PK = :pk",
+				ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
+					{ ":pk", new AttributeValue { S = $"TENANT#{tenantId}#CONVERSACION#{numeroTelefono}" } }
+				},
+				ScanIndexForward = false,
+				Limit = limit
+			};
+
+			if (desde.HasValue || hasta.HasValue) {
+				string rangeExp = "";
+				if (desde.HasValue && hasta.HasValue) {
+					rangeExp = "SK BETWEEN :desde AND :hasta";
+					request.ExpressionAttributeValues[":desde"] = new AttributeValue { S = $"MENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+					request.ExpressionAttributeValues[":hasta"] = new AttributeValue { S = $"MENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+				} else if (desde.HasValue) {
+					rangeExp = "SK >= :desde";
+					request.ExpressionAttributeValues[":desde"] = new AttributeValue { S = $"MENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+				} else if (hasta.HasValue) {
+					rangeExp = "SK <= :hasta";
+					request.ExpressionAttributeValues[":hasta"] = new AttributeValue { S = $"MENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+				}
+				request.FilterExpression = rangeExp;
+			}
+
+			QueryResponse response = await client.QueryAsync(request);
+			return [.. response.Items.Select(item => ConversacionMensaje.FromItem(item))];
 		}
 	}
 }
