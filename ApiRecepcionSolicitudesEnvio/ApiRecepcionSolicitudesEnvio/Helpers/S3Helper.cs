@@ -3,6 +3,7 @@ using Amazon.S3.Model;
 using Amazon.S3.Transfer;
 using Amazon.SQS;
 using System.Net;
+using System.Net.Mime;
 
 namespace ApiRecepcionSolicitudesEnvio.Helpers {
 	public class S3Helper(IAmazonS3 amazonS3) {
@@ -22,20 +23,19 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
 			return await amazonS3.GetPreSignedURLAsync(request);
 		}
 
-		public async Task<bool> ExisteBucketObject(string bucketName, string bucketKey) {
+		public async Task<(bool existe, string? contentType)> ExisteBucketObject(string bucketName, string bucketKey) {
 			GetObjectMetadataRequest request = new() {
 				BucketName = bucketName,
 				Key = bucketKey,
 			};
 
-			bool existe = true;
 			try {
 				GetObjectMetadataResponse response = await amazonS3.GetObjectMetadataAsync(request);
-			} catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound && ex.ErrorCode == "NotFound") {
-				existe = false;
-			}
+				return (true, response.ContentType);
 
-			return existe;
+			} catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound && ex.ErrorCode == "NotFound") {
+				return (false, null);
+			}
 		}
 
 		public async Task PutObjectStream(string bucketName, string bucketKey, Stream stream, string contentType) {

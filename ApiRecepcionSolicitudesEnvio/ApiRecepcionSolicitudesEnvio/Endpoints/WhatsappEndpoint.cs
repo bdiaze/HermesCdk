@@ -9,6 +9,7 @@ using LibreriaCompartida.Enums.DynamoDB;
 using LibreriaCompartida.Helpers;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.NetworkInformation;
@@ -125,10 +126,11 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 
 					string bucketName = variableEntorno.Obtener("BUCKET_NAME_WHATSAPP_MEDIA");
 
-					if (!await s3Helper.ExisteBucketObject(bucketName, mediaInfo.Id)) {
+					(bool existe, string? contentType) = await s3Helper.ExisteBucketObject(bucketName, mediaInfo.Id);
+					if (!existe) {
 						HttpResponseMessage responseGetMedia = await whatsappHelper.ObtenerMedia(mediaInfo.Id);
 						Stream stream = await responseGetMedia.Content.ReadAsStreamAsync();
-						string contentType = responseGetMedia.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+						contentType = responseGetMedia.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
 						try {
 							await s3Helper.PutObjectStream(
 								bucketName,
@@ -141,8 +143,8 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 							responseGetMedia.Dispose();
 						}
 					}
-
-					string presignedUrl = await s3Helper.ObtenerGetPreSignedUrl(bucketName, mediaInfo.Id, mediaInfo.Filename ?? mediaInfo.Id);
+					string fileName = mediaInfo.Filename ?? mediaInfo.Id + (contentType != null ? GetExtensionFromMime(contentType) : "");
+					string presignedUrl = await s3Helper.ObtenerGetPreSignedUrl(bucketName, mediaInfo.Id, fileName);
 
 					LambdaLogger.Log(
 						$"[GET] - [/Whatsapp/Media] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
@@ -472,6 +474,35 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 			byte[] hash = hmac.ComputeHash(dataBytes);
 
 			return BitConverter.ToString(hash).Replace("-", "").ToLower();
+		}
+
+		private static string GetExtensionFromMime(string contentType) {
+			Dictionary<string, string> mimeMap = new(StringComparer.OrdinalIgnoreCase) {
+				{ "application/pdf", ".pdf" },
+				{ "image/jpeg", ".jpg" },
+				{ "image/png", ".png" },
+				{ "image/gif", ".gif" },
+				{ "audio/mpeg", ".mp3" },
+				{ "audio/ogg", ".ogg" },
+				{ "video/mp4", ".mp4" },
+				{ "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx" },
+				{ "application/msword", ".doc" },
+				{ "application/vnd.ms-excel", ".xls" },
+				{ "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xlsx" },
+				{ "text/plain", ".txt" },
+				{ "application/zip", ".zip" }
+			};
+
+			if (mimeMap.TryGetValue(contentType, out string? ext)) {
+				return ext!;
+			}
+
+			string[] mimeParts = contentType.Split('/');
+			if (mimeParts.Length == 2) {
+				return "." + mimeParts[1];
+			}
+	
+			return "";
 		}
 	}
 }
