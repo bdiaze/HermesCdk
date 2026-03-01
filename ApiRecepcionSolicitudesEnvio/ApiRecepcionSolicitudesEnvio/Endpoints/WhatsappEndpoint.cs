@@ -199,7 +199,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 						FechaUltimoMensaje = conversacion.FechaUltimoMensaje,
 						PreviewUltimoMensaje = conversacion.PreviewUltimoMensaje,
 						CantidadNoLeidos = conversacion.CantidadNoLeidos,
-						Estado = conversacion.Estado,
+						Estado = conversacion.Estado.ToString(),
 						FechaUltimaEntrada = conversacion.FechaUltimaEntrada,
 						PuedeResponderGratuitoHasta = conversacion.PuedeResponderGratuitoHasta
 					})];

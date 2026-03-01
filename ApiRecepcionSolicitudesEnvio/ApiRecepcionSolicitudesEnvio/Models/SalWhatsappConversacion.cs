@@ -7,7 +7,7 @@ namespace ApiRecepcionSolicitudesEnvio.Models {
 		public DateTime FechaUltimoMensaje { get; set; }
 		public string? PreviewUltimoMensaje { get; set; }
 		public int CantidadNoLeidos { get; set; }
-		public EstadoConversacion Estado { get; set; }
+		public required string Estado { get; set; }
 		public DateTime? FechaUltimaEntrada { get; set; }
 		public DateTime? PuedeResponderGratuitoHasta { get; set; }
 	}
