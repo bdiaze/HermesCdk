@@ -124,15 +124,19 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 					string bucketName = variableEntorno.Obtener("BUCKET_NAME_WHATSAPP_MEDIA");
 
 					if (!await s3Helper.ExisteBucketObject(bucketName, mediaInfo.Id)) {
-						(Stream stream, string contentType) = await whatsappHelper.ObtenerMedia(mediaInfo.Id);
-
-						await using (stream) {
+						HttpResponseMessage responseGetMedia = await whatsappHelper.ObtenerMedia(mediaInfo.Id);
+						Stream stream = await responseGetMedia.Content.ReadAsStreamAsync();
+						string contentType = responseGetMedia.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+						try {
 							await s3Helper.PutObjectStream(
 								bucketName,
 								mediaInfo.Id,
 								stream,
 								contentType
 							);
+						} finally {
+							await stream.DisposeAsync();
+							responseGetMedia.Dispose();
 						}
 					}
 
