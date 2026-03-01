@@ -99,6 +99,9 @@ namespace LambdaWorker {
 						case "Whatsapp":
 							Whatsapp whatsapp = JsonSerializer.Deserialize<Whatsapp>((string)contenido)!;
 							string idMensajeWhatsapp;
+							TipoMensaje tipo;
+							string? cuerpo = null;
+							string? nombreTemplate = null;
 							object payload;
 							if (whatsapp.NombreTemplate != null) {
 								(idMensajeWhatsapp, payload) = await whatsappHelper.EnviarTemplate(
@@ -110,12 +113,16 @@ namespace LambdaWorker {
 									whatsapp.ParametrosCuerpo,
 									whatsapp.ParametrosBoton
 								);
+								tipo = TipoMensaje.Template;
+								nombreTemplate = whatsapp.NombreTemplate;
 							} else if (whatsapp.Cuerpo != null) {
 								(idMensajeWhatsapp, payload) = await whatsappHelper.EnviarTexto(
 									whatsapp.De,
 									whatsapp.Para,
 									whatsapp.Cuerpo
 								);
+								tipo = TipoMensaje.Texto;
+								cuerpo = whatsapp.Cuerpo;
 							} else {
 								throw new Exception("El mensaje de Whatsapp no incluye nombre de template ni cuerpo.");
 							}
@@ -141,9 +148,9 @@ namespace LambdaWorker {
 								whatsapp.De,
 								whatsapp.Para,
 								idMensajeWhatsapp,
-								TipoMensaje.Template,
-								null,
-								whatsapp.NombreTemplate,
+								tipo,
+								cuerpo,
+								nombreTemplate,
 								JsonSerializer.Serialize(payload),
 								fechaEnvio
 							);
