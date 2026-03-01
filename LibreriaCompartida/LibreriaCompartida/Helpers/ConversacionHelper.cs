@@ -245,64 +245,67 @@ namespace LibreriaCompartida.Helpers {
 		}
 
 		public async Task<List<ConversacionMetadata>> ObtenerConversaciones(string tenantId, DateTime? desde = null, DateTime? hasta = null, int limit = 50) {
+			string keyCondition = "GSI1PK = :TenantId";
+			Dictionary<string, AttributeValue> expressionValues = new() {
+				{ ":TenantId", new AttributeValue { S = $"TENANT#{tenantId}" } }
+			};
+
+
+			if (desde.HasValue || hasta.HasValue) {
+				if (desde.HasValue && hasta.HasValue) {
+					keyCondition += " AND GSI1SK BETWEEN :desde AND :hasta";
+					expressionValues[":desde"] = new AttributeValue { S = $"FECHAULTIMOMENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+					expressionValues[":hasta"] = new AttributeValue { S = $"FECHAULTIMOMENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+				} else if (desde.HasValue) {
+					keyCondition += " AND GSI1SK >= :desde";
+					expressionValues[":desde"] = new AttributeValue { S = $"FECHAULTIMOMENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+				} else if (hasta.HasValue) {
+					keyCondition += " AND GSI1SK <= :hasta";
+					expressionValues[":hasta"] = new AttributeValue { S = $"FECHAULTIMOMENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+				}
+			}
+
 			QueryRequest request = new() {
 				TableName = TABLE_NAME,
 				IndexName = "GSI1",
-				KeyConditionExpression = $"GSI1PK = :TenantId",
-				ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
-					{ ":TenantId", new AttributeValue { S = $"TENANT#{tenantId}" } }
-				},
+				KeyConditionExpression = keyCondition,
+				ExpressionAttributeValues = expressionValues,
 				ScanIndexForward = false,
 				Limit = limit
 			};
-
-			if (desde.HasValue || hasta.HasValue) {
-				string rangeExp = "";
-				if (desde.HasValue && hasta.HasValue) {
-					rangeExp = "GSI1SK BETWEEN :desde AND :hasta";
-					request.ExpressionAttributeValues[":desde"] = new AttributeValue { S = $"FECHAULTIMOMENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
-					request.ExpressionAttributeValues[":hasta"] = new AttributeValue { S = $"FECHAULTIMOMENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
-				} else if (desde.HasValue) {
-					rangeExp = "GSI1SK >= :desde";
-					request.ExpressionAttributeValues[":desde"] = new AttributeValue { S = $"FECHAULTIMOMENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
-				} else if (hasta.HasValue) {
-					rangeExp = "GSI1SK <= :hasta";
-					request.ExpressionAttributeValues[":hasta"] = new AttributeValue { S = $"FECHAULTIMOMENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
-				}
-				request.FilterExpression = rangeExp;
-			}
 
 			QueryResponse response = await client.QueryAsync(request);
 			return [.. response.Items.Select(item => ConversacionMetadata.FromItem(item))];
 		}
 
 		public async Task<List<ConversacionMensaje>> ObtenerMensajes(string tenantId, string numeroTelefono, DateTime? desde = null, DateTime? hasta = null, int limit = 50) {
-			QueryRequest request = new() {
-				TableName = TABLE_NAME,
-				KeyConditionExpression = $"PK = :pk AND begins_with(SK, :prefijoMensaje)",
-				ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
-					{ ":pk", new AttributeValue { S = $"TENANT#{tenantId}#CONVERSACION#{numeroTelefono}" } },
-					{ ":prefijoMensaje", new AttributeValue { S = "MENSAJE#" } }
-				},
-				ScanIndexForward = false,
-				Limit = limit
+			string keyCondition = "PK = :pk AND begins_with(SK, :prefijoMensaje)";
+			Dictionary<string, AttributeValue> expressionValues = new() {
+				{ ":pk", new AttributeValue { S = $"TENANT#{tenantId}#CONVERSACION#{numeroTelefono}" } },
+				{ ":prefijoMensaje", new AttributeValue { S = "MENSAJE#" } }
 			};
 
 			if (desde.HasValue || hasta.HasValue) {
-				string rangeExp = "";
 				if (desde.HasValue && hasta.HasValue) {
-					rangeExp = "SK BETWEEN :desde AND :hasta";
-					request.ExpressionAttributeValues[":desde"] = new AttributeValue { S = $"MENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
-					request.ExpressionAttributeValues[":hasta"] = new AttributeValue { S = $"MENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+					keyCondition += " AND SK BETWEEN :desde AND :hasta";
+					expressionValues[":desde"] = new AttributeValue { S = $"MENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+					expressionValues[":hasta"] = new AttributeValue { S = $"MENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
 				} else if (desde.HasValue) {
-					rangeExp = "SK >= :desde";
-					request.ExpressionAttributeValues[":desde"] = new AttributeValue { S = $"MENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+					keyCondition += " AND SK >= :desde";
+					expressionValues[":desde"] = new AttributeValue { S = $"MENSAJE#{desde.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
 				} else if (hasta.HasValue) {
-					rangeExp = "SK <= :hasta";
-					request.ExpressionAttributeValues[":hasta"] = new AttributeValue { S = $"MENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
+					keyCondition += " AND SK <= :hasta";
+					expressionValues[":hasta"] = new AttributeValue { S = $"MENSAJE#{hasta.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}" };
 				}
-				request.FilterExpression = rangeExp;
 			}
+
+			QueryRequest request = new() {
+				TableName = TABLE_NAME,
+				KeyConditionExpression = keyCondition,
+				ExpressionAttributeValues = expressionValues,
+				ScanIndexForward = false,
+				Limit = limit
+			};
 
 			QueryResponse response = await client.QueryAsync(request);
 			return [.. response.Items.Select(item => ConversacionMensaje.FromItem(item))];
