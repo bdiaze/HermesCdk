@@ -21,7 +21,7 @@ namespace ApiRecepcionSolicitudesEnvio.Helpers {
 	[JsonSerializable(typeof(WhatsappWebhook))]
 	[JsonSerializable(typeof(WhatsappResponse))]
 	[JsonSerializable(typeof(WhatsappMediaResponse))]
-	[JsonSerializable(typeof(List<ConversacionMetadata>))]
+	[JsonSerializable(typeof(List<SalWhatsappConversacion>))]
 	[JsonSerializable(typeof(List<ConversacionMensaje>))]
 	[JsonSerializable(typeof(Entry))]
 	[JsonSerializable(typeof(Change))]

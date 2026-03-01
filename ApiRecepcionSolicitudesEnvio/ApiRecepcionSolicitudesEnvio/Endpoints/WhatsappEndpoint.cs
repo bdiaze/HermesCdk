@@ -176,7 +176,16 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 						$"[GET] - [/Whatsapp/ObtenerMetadataConversaciones] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
 						$"Se obtiene exitosamente la metadata de las conversaciones de Whatsapp - Tenant ID: {tenantId} - Cant. Conversaciones: {retorno.Count}.");
 
-					return Results.Ok(retorno);
+					return Results.Ok(retorno.Select(conversacion => new SalWhatsappConversacion {
+						TenantId = conversacion.TenantId,
+						NumeroTelefono = conversacion.NumeroTelefono,
+						FechaUltimoMensaje = conversacion.FechaUltimoMensaje,
+						PreviewUltimoMensaje = conversacion.PreviewUltimoMensaje,
+						CantidadNoLeidos = conversacion.CantidadNoLeidos,
+						Estado = conversacion.Estado,
+						FechaUltimaEntrada = conversacion.FechaUltimaEntrada,
+						PuedeResponderGratuitoHasta = conversacion.PuedeResponderGratuitoHasta
+					}).ToList());
 				} catch (Exception ex) {
 					LambdaLogger.Log(
 						$"[GET] - [/Whatsapp/ObtenerMetadataConversaciones] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status500InternalServerError}] - " +
