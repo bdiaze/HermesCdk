@@ -53,7 +53,7 @@ namespace LibreriaCompartida.Helpers {
 			Dictionary<string, string> secretApp = jsonSerializer.DeserializeDictionaryStringString(await secretManagerHelper.ObtenerSecreto(variableEntorno.Obtener("SECRET_ARN_APP")))!;
 
 			httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", secretApp["WhatsappToken"]);
-			HttpResponseMessage response = await httpClient.PostAsJsonAsync($"v25.0/{idNumeroTelefono}/messages", payload);
+			using HttpResponseMessage response = await httpClient.PostAsJsonAsync($"v25.0/{idNumeroTelefono}/messages", payload);
 			string responseContent = await response.Content.ReadAsStringAsync();
 			if (!response.IsSuccessStatusCode) {
 				throw new Exception($"Ocurrió un error con API de Whatsapp - Status Code: {response.StatusCode} - Content: {responseContent}");
@@ -68,7 +68,7 @@ namespace LibreriaCompartida.Helpers {
 			Dictionary<string, string> secretApp = jsonSerializer.DeserializeDictionaryStringString(secret)!;
 
 			httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", secretApp["WhatsappToken"]);
-			HttpResponseMessage response = await httpClient.GetAsync($"v25.0/{mediaId}");
+			using HttpResponseMessage response = await httpClient.GetAsync($"v25.0/{mediaId}");
 			string responseContent = await response.Content.ReadAsStringAsync();
 			if (!response.IsSuccessStatusCode) {
 				throw new Exception($"Ocurrió un error al obtener URL de descarga de media desde API de Whatsapp - Status Code: {response.StatusCode} - Content: {responseContent}");
