@@ -4,6 +4,7 @@ namespace ApiRecepcionSolicitudesEnvio.Models {
 	public class SalWhatsappMensaje {
 		public required string TenantId { get; set; }
 		public required string NumeroTelefono { get; set; }
+		public string? IdMensaje { get; set; }
 		public required string WhatsappMessageId { get; set; }
 		public required string Direccion { get; set; }
 		public required string Tipo { get; set; }

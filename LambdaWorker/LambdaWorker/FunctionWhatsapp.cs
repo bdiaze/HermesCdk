@@ -147,6 +147,7 @@ namespace LambdaWorker {
 							await conversacionHelper.RegistrarNuevoMensajeSalida(
 								whatsapp.De,
 								whatsapp.Para,
+								idMensaje,
 								idMensajeWhatsapp,
 								tipo,
 								cuerpo,

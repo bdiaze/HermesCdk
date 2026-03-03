@@ -11,6 +11,7 @@ namespace LibreriaCompartida.Entities.DynamoDB {
 	public class ConversacionMensaje : Base {
 		public required string TenantId { get; set; }
 		public required string NumeroTelefono { get; set; }
+		public string? IdMensaje { get; set; }
 		public required string WhatsappMessageId { get; set; }
 		public DireccionMensaje Direccion { get; set; }
 		public TipoMensaje Tipo {  get; set; }
@@ -32,6 +33,7 @@ namespace LibreriaCompartida.Entities.DynamoDB {
 				new Dictionary<string, AttributeValue>() {
 					{ "TenantId", new AttributeValue { S = $"{TenantId}" } },
 					{ "NumeroTelefono", new AttributeValue { S = $"{NumeroTelefono}" } },
+					{ "IdMensaje",  new AttributeValue { NULL = true } },
 					{ "WhatsappMessageId", new AttributeValue { S = $"{WhatsappMessageId}" } },
 					{ "Direccion", new AttributeValue { S = $"{Direccion}" } },
 					{ "Tipo", new AttributeValue { S = $"{Tipo}" } },
@@ -43,17 +45,10 @@ namespace LibreriaCompartida.Entities.DynamoDB {
 				}
 			).ToDictionary();
 
-			if (Cuerpo != null) {
-				item["Cuerpo"] = new AttributeValue { S = $"{Cuerpo}" };
-			}
-
-			if (NombreTemplate != null) {
-				item["NombreTemplate"] = new AttributeValue { S = $"{NombreTemplate}" };
-			}
-
-			if (RawPayload != null) {
-				item["RawPayload"] = new AttributeValue { S = $"{RawPayload}" };
-			}
+			if (IdMensaje != null) item["IdMensaje"] = new AttributeValue { S = $"{IdMensaje}" };
+			if (Cuerpo != null) item["Cuerpo"] = new AttributeValue { S = $"{Cuerpo}" };
+			if (NombreTemplate != null) item["NombreTemplate"] = new AttributeValue { S = $"{NombreTemplate}" };
+			if (RawPayload != null) item["RawPayload"] = new AttributeValue { S = $"{RawPayload}" };
 
 			return item;
 		}
@@ -62,6 +57,7 @@ namespace LibreriaCompartida.Entities.DynamoDB {
 			return new ConversacionMensaje() {
 				TenantId = item["TenantId"].S,
 				NumeroTelefono = item["NumeroTelefono"].S,
+				IdMensaje = item["IdMensaje"].S,
 				WhatsappMessageId = item["WhatsappMessageId"].S,
 				Direccion = Enum.Parse<DireccionMensaje>(item["Direccion"].S),
 				Tipo = Enum.Parse<TipoMensaje>(item["Tipo"].S),

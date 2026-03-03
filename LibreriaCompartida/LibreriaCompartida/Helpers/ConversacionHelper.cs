@@ -131,11 +131,12 @@ namespace LibreriaCompartida.Helpers {
 			}
 		}
 
-		public async Task RegistrarNuevoMensajeSalida(string tenantId, string numeroTelefono, string whatsappMessageId, TipoMensaje tipo, string? cuerpo, string? nombreTemplate, string? rawPayload, DateTime fechaMensaje) {
+		public async Task RegistrarNuevoMensajeSalida(string tenantId, string numeroTelefono, string idMensaje, string whatsappMessageId, TipoMensaje tipo, string? cuerpo, string? nombreTemplate, string? rawPayload, DateTime fechaMensaje) {
 			ConversacionMetadata metadata = await ObtenerOCrearMetadata(tenantId, numeroTelefono, fechaMensaje);
 			ConversacionMensaje mensaje = new() { 
 				TenantId = tenantId,
 				NumeroTelefono = numeroTelefono,
+				IdMensaje = idMensaje,
 				WhatsappMessageId = whatsappMessageId,
 				Direccion = DireccionMensaje.Salida,
 				Tipo = tipo,
@@ -176,6 +177,7 @@ namespace LibreriaCompartida.Helpers {
 			ConversacionMensaje mensaje = new() {
 				TenantId = tenantId,
 				NumeroTelefono = numeroTelefono,
+				IdMensaje = null,
 				WhatsappMessageId = whatsappMessageId,
 				Direccion = DireccionMensaje.Entrada,
 				Tipo = tipo,

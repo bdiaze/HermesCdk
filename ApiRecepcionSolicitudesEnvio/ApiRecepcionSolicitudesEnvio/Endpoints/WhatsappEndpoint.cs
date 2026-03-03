@@ -237,6 +237,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 					List<SalWhatsappMensaje> retorno = [.. mensajes.Select(mensaje => new SalWhatsappMensaje {
 						TenantId = mensaje.TenantId,
 						NumeroTelefono = mensaje.NumeroTelefono,
+						IdMensaje = mensaje.IdMensaje,
 						WhatsappMessageId = mensaje.WhatsappMessageId,
 						Direccion = mensaje.Direccion.ToString(),
 						Tipo = mensaje.Tipo.ToString(),
