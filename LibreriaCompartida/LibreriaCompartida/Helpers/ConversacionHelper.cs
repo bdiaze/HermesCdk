@@ -164,7 +164,7 @@ namespace LibreriaCompartida.Helpers {
 						previewMensaje += enumerator.GetTextElement();
 						count++;
 					}
-					if (count < cuerpo.Length) {
+					if (count < new StringInfo(cuerpo).LengthInTextElements) {
 						previewMensaje += "...";
 					}
 				}
@@ -202,7 +202,7 @@ namespace LibreriaCompartida.Helpers {
 					previewMensaje += enumerator.GetTextElement();
 					count++;
 				}
-				if (count < cuerpo.Length) {
+				if (count < new StringInfo(cuerpo).LengthInTextElements) {
 					previewMensaje += "...";
 				}
 			}
