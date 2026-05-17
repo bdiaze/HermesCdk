@@ -25,10 +25,16 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ApiKey = Amazon.CDK.AWS.APIGateway.ApiKey;
+using ApiKeyProps = Amazon.CDK.AWS.APIGateway.ApiKeyProps;
 using Attribute = Amazon.CDK.AWS.DynamoDB.Attribute;
+using LogGroupLogDestination = Amazon.CDK.AWS.APIGateway.LogGroupLogDestination;
 using Secret = Amazon.CDK.AWS.SecretsManager.Secret;
 using StageOptions = Amazon.CDK.AWS.APIGateway.StageOptions;
 using ThrottleSettings = Amazon.CDK.AWS.APIGateway.ThrottleSettings;
+using UsagePlan = Amazon.CDK.AWS.APIGateway.UsagePlan;
+using UsagePlanPerApiStage = Amazon.CDK.AWS.APIGateway.UsagePlanPerApiStage;
+using UsagePlanProps = Amazon.CDK.AWS.APIGateway.UsagePlanProps;
 
 namespace HermesCdk {
     public class HermesCdkStack : Stack
