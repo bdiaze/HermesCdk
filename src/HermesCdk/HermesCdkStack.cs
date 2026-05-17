@@ -315,7 +315,7 @@ namespace HermesCdk {
             Function function = new(this, $"{appName}APILambdaFunction", new FunctionProps {
                 FunctionName = $"{appName}API",
                 Description = $"API encargada de ingresar los correos a la cola de envio de la aplicacion {appName}",
-                Runtime = Runtime.DOTNET_8,
+                Runtime = Runtime.DOTNET_10,
                 Handler = handler,
                 Code = Code.FromAsset($"{apiDirectory}/publish/publish.zip"),
                 Timeout = Duration.Seconds(double.Parse(timeout)),
@@ -479,7 +479,7 @@ namespace HermesCdk {
             Function workerFunctionEmail = new(this, $"{appName}EmailWorkerLambdaFunction", new FunctionProps {
                 FunctionName = $"{appName}EmailWorker",
                 Description = $"Funcion worker encargada de enviar emails desde la cola de la aplicacion {appName}",
-                Runtime = Runtime.DOTNET_8,
+                Runtime = Runtime.DOTNET_10,
                 Handler = workerLambdaHandler,
                 Code = Code.FromAsset($"{workerDirectory}/publish/publish.zip"),
                 Timeout = Duration.Seconds(double.Parse(workerLambdaTimeout)),
@@ -556,7 +556,7 @@ namespace HermesCdk {
 			Function workerFunctionWhatsapp = new(this, $"{appName}WhatsappWorkerLambdaFunction", new FunctionProps {
 				FunctionName = $"{appName}WhatsappWorker",
 				Description = $"Funcion worker encargada de enviar mensajes de Whatsapp desde la cola de la aplicacion {appName}",
-				Runtime = Runtime.DOTNET_8,
+				Runtime = Runtime.DOTNET_10,
 				Handler = workerLambdaHandlerWhatsapp,
 				Code = Code.FromAsset($"{workerDirectory}/publish/publish.zip"),
 				Timeout = Duration.Seconds(double.Parse(workerLambdaTimeout)),
