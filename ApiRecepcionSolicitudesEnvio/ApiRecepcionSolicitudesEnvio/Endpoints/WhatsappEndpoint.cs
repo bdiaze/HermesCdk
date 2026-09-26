@@ -23,6 +23,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 		public static IEndpointRouteBuilder MapWhatsappEndpoints(this IEndpointRouteBuilder routes) {
 			RouteGroupBuilder group = routes.MapGroup("/Whatsapp");
 			group.MapEnviarEndpoint();
+			group.MapRespuestaAutomatica();
 			group.MapObtenerMediaEndpoint();
 			group.MapObtenerConversaciones();
 			group.MapObtenerMensajes();
@@ -119,6 +120,29 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 
 		}
 
+		private static void MapRespuestaAutomatica(this IEndpointRouteBuilder routes) {
+			routes.MapPost("/RespuestaAutomatica", async (WhatsappRespuestaAutomatica entrada, ConversacionHelper conversacionHelper) => {
+				Stopwatch stopwatch = Stopwatch.StartNew();
+
+				try {
+					await conversacionHelper.RegistrarOActualizarTemplateRespuestaAutomatica(entrada.TenantId, entrada.NombreTemplate);
+
+					LambdaLogger.Log(
+						$"[POST] - [/Whatsapp/RespuestaAutomatica] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status200OK}] - " +
+						$"La respuesta automática de Whatsapp fue configurada exitosamente.");
+
+					return Results.Ok();
+				} catch (Exception ex) {
+					LambdaLogger.Log(
+						$"[POST] - [/Whatsapp/RespuestaAutomatica] - [{stopwatch.ElapsedMilliseconds} ms] - [{StatusCodes.Status500InternalServerError}] - " +
+						$"Ocurrió un error al configurar la respuesta automática de Whatsapp. " +
+						$"{ex}");
+
+					return Results.Problem("Ocurrió un error al procesar su solicitud de configuración de respuesta automática.");
+				}
+			});
+		}
+
 		private static IEndpointRouteBuilder MapObtenerMediaEndpoint(this IEndpointRouteBuilder routes) {
 			routes.MapGet("/Media/{whatsappMessageId}", async (string whatsappMessageId, VariableEntornoHelper variableEntorno, ConversacionHelper conversacionHelper, WhatsappHelper whatsappHelper, S3Helper s3Helper) => {
 				Stopwatch stopwatch = Stopwatch.StartNew();
@@ -185,7 +209,6 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 			return routes;
 
 		}
-
 
 		private static IEndpointRouteBuilder MapObtenerConversaciones(this IEndpointRouteBuilder routes) {
 			routes.MapGet("/Conversaciones/{tenantId}/{desde?}/{hasta?}", async (string tenantId, DateTime? desde, DateTime? hasta, VariableEntornoHelper variableEntorno, ConversacionHelper conversacionHelper) => {

@@ -40,6 +40,28 @@ namespace LibreriaCompartida.Helpers {
 			}
 		}
 
+		public async Task<ConversacionRespuestaAutomatica?> ObtenerRespuestaAutomatica(string tenantId) {
+			ConversacionRespuestaAutomatica auxiliar = new() {
+				TenantId = tenantId,
+				NombreTemplate = ""
+			};
+
+			GetItemResponse response = await client.GetItemAsync(new GetItemRequest {
+				TableName = TABLE_NAME,
+				Key = auxiliar.Key,
+			});
+
+			if (response.HttpStatusCode != System.Net.HttpStatusCode.OK) {
+				throw new Exception("Ocurrió un error al obtener el ítem de Dynamo");
+			}
+
+			if (response.Item == null || response.Item.Count == 0) {
+				return null;
+			} else {
+				return ConversacionRespuestaAutomatica.FromItem(response.Item);
+			}
+		}
+
 		public async Task InsertarMetadata(ConversacionMetadata nuevo) {
 			PutItemResponse response = await client.PutItemAsync(new PutItemRequest {
 				TableName = TABLE_NAME,
@@ -53,6 +75,18 @@ namespace LibreriaCompartida.Helpers {
 		}
 
 		public async Task InsertarMensaje(ConversacionMensaje nuevo) {
+			PutItemResponse response = await client.PutItemAsync(new PutItemRequest {
+				TableName = TABLE_NAME,
+				Item = nuevo.ToItem(),
+				ConditionExpression = "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+			});
+
+			if (response.HttpStatusCode != System.Net.HttpStatusCode.OK) {
+				throw new Exception("Ocurrió un error al insertar el ítem de Dynamo");
+			}
+		}
+
+		public async Task InsertarRespuestaAutomatica(ConversacionRespuestaAutomatica nuevo) {
 			PutItemResponse response = await client.PutItemAsync(new PutItemRequest {
 				TableName = TABLE_NAME,
 				Item = nuevo.ToItem(),
@@ -79,6 +113,19 @@ namespace LibreriaCompartida.Helpers {
 			};
 
 			await InsertarMetadata(nuevo);
+			return nuevo;
+		}
+
+		public async Task<ConversacionRespuestaAutomatica> ObtenerOCrearRespuestaAutomatica(string tenantId, string nombreTemplate) {
+			ConversacionRespuestaAutomatica? retorno = await ObtenerRespuestaAutomatica(tenantId);
+			if (retorno != null) return retorno;
+
+			ConversacionRespuestaAutomatica nuevo = new() {
+				TenantId = tenantId,
+				NombreTemplate = nombreTemplate,
+				FechaCreacion = DateTime.UtcNow
+			};
+			await InsertarRespuestaAutomatica(nuevo);
 			return nuevo;
 		}
 
@@ -249,6 +296,23 @@ namespace LibreriaCompartida.Helpers {
 			});
 		}
 
+		public async Task ActualizarTemplateRespuestaAutomatica(string tenantId, string nombreTemplate) {
+			ConversacionRespuestaAutomatica auxiliar = new() {
+				TenantId = tenantId,
+				NombreTemplate = ""
+			};
+
+			await client.UpdateItemAsync(new UpdateItemRequest {
+				TableName = TABLE_NAME,
+				Key = auxiliar.Key,
+				UpdateExpression = $"SET {nameof(auxiliar.NombreTemplate)} = :{nameof(auxiliar.NombreTemplate)}",
+				ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
+					{ $":{nameof(auxiliar.NombreTemplate)}", new AttributeValue { S = $"{nombreTemplate}" } }
+				},
+				ConditionExpression = "attribute_exists(PK) AND attribute_exists(SK)"
+			});		
+		}
+
 		public async Task<List<ConversacionMetadata>> ObtenerConversaciones(string tenantId, DateTime? desde = null, DateTime? hasta = null, int limit = 50) {
 			string keyCondition = "GSI1PK = :TenantId";
 			Dictionary<string, AttributeValue> expressionValues = new() {
@@ -336,6 +400,13 @@ namespace LibreriaCompartida.Helpers {
 
 			if (response.HttpStatusCode != System.Net.HttpStatusCode.OK) {
 				throw new Exception("Ocurrió un error al actualizar el ítem de Dynamo");
+			}
+		}
+
+		public async Task RegistrarOActualizarTemplateRespuestaAutomatica(string tenantId, string nombreTemplate) {
+			ConversacionRespuestaAutomatica respuestaAutomatica = await ObtenerOCrearRespuestaAutomatica(tenantId, nombreTemplate);
+			if (respuestaAutomatica.NombreTemplate != nombreTemplate) {
+				await ActualizarTemplateRespuestaAutomatica(tenantId, nombreTemplate);
 			}
 		}
 	}
