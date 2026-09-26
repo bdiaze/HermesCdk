@@ -327,7 +327,7 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 		}
 
 		private static IEndpointRouteBuilder MapWebhookPostEndpoint(this IEndpointRouteBuilder routes) {
-			routes.MapPost("/webhook", async (HttpRequest request, [FromHeader(Name = "X-Hub-Signature-256")] string xHubSignature256, VariableEntornoHelper variableEntorno, SecretManagerHelper secretManagerHelper, DynamoHelper dynamo, ConversacionHelper conversacionHelper) => {
+			routes.MapPost("/webhook", async (HttpRequest request, [FromHeader(Name = "X-Hub-Signature-256")] string xHubSignature256, VariableEntornoHelper variableEntorno, SecretManagerHelper secretManagerHelper, IAmazonSQS sqsClient, DynamoHelper dynamo, ConversacionHelper conversacionHelper) => {
 				Stopwatch stopwatch = Stopwatch.StartNew();
 
 				try {
@@ -373,8 +373,10 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 										numeroTelefono = $"+{numeroTelefono}";
 									}
 
+									string tenantId = change.Value.Metadata.PhoneNumberId;
+
 									await conversacionHelper.RegistrarNuevoMensajeEntrada(
-										change.Value.Metadata.PhoneNumberId,
+										tenantId,
 										numeroTelefono,
 										message.Id,
 										message.Type switch {
@@ -399,6 +401,48 @@ namespace ApiRecepcionSolicitudesEnvio.Endpoints {
 										JsonSerializer.Serialize(message, AppJsonSerializerContext.Default.Message),
 										DateTimeOffset.FromUnixTimeSeconds(long.Parse(message.Timestamp)).UtcDateTime
 									);
+
+									// Se envía mensaje de respuesta automática si está configurada para el Tenant...
+									ConversacionRespuestaAutomatica? respuestaAutomatica = await conversacionHelper.ObtenerRespuestaAutomatica(tenantId);
+									if (respuestaAutomatica != null) {
+										// Se genera un ID único...
+										string idMensaje = Guid.NewGuid().ToString();
+										while ((await dynamo.Obtener(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), new Dictionary<string, object?> { ["IdMensaje"] = idMensaje })) != null) {
+											idMensaje = Guid.NewGuid().ToString();
+										}
+
+										// Se ingresa a DynamoDB...
+										Dictionary<string, object?>? itemDynamo = new() {
+											["IdMensaje"] = idMensaje,
+											["TipoMensaje"] = "Whatsapp",
+											["Estado"] = "Pendiente",
+											["Contenido"] = JsonSerializer.Serialize(new Whatsapp() {
+												De = respuestaAutomatica.TenantId,
+												Para = numeroTelefono,
+												NombreTemplate = respuestaAutomatica.NombreTemplate,
+											}, AppJsonSerializerContext.Default.Whatsapp),
+											["FechaCreacion"] = DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture),
+										};
+										await dynamo.Insertar(variableEntorno.Obtener("DYNAMODB_TABLE_NAME"), itemDynamo);
+
+										// Se ingresa a cola de envío...
+										SendMessageResponse response = await sqsClient.SendMessageAsync(new() {
+											QueueUrl = variableEntorno.Obtener("WHATSAPP_SQS_QUEUE_URL"),
+											MessageBody = (string)itemDynamo["IdMensaje"]!
+										});
+
+										// Se actualiza el ítem en DynamoDB...
+										await dynamo.ActualizarCampos(
+											variableEntorno.Obtener("DYNAMODB_TABLE_NAME"),
+											new Dictionary<string, object?> { ["IdMensaje"] = (string)itemDynamo["IdMensaje"]! },
+											"SET Estado = :Estado, QueueMessageId = :QueueMessageId",
+											"attribute_exists(IdMensaje)",
+											new Dictionary<string, object> {
+												{ ":Estado", "InsertadoColaEnvio" },
+												{ ":QueueMessageId", response.MessageId },
+											}
+										);
+									}
 								} catch (Exception ex) {
 									LambdaLogger.Log(
 										$"[POST] - [/Whatsapp/webhook] - [{stopwatch.ElapsedMilliseconds} ms] - " +
