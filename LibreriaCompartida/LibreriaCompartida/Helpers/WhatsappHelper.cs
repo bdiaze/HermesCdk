@@ -6,26 +6,30 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Net.Mime;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace LibreriaCompartida.Helpers {
 	public class WhatsappHelper(VariableEntornoHelper variableEntorno, SecretManagerHelper secretManagerHelper, HttpClient httpClient, IJsonSerializer jsonSerializer) {
+		private static string LimpiarParametroWhatsapp(string? valor) {
+			if (string.IsNullOrWhiteSpace(valor)) return string.Empty;
+
+			valor = Regex.Replace(valor, @"\s+", " ", RegexOptions.NonBacktracking);
+			valor = Regex.Replace(valor, @"\p{Cc}", "", RegexOptions.NonBacktracking);
+			return valor.Trim();
+		}
+		
 		public async Task<(string whatsappIdMessage, object payload)> EnviarTemplate(string idNumeroTelefono, string para, string nombreTemplate, string lenguaje, string[]? parametrosHeader, string[]? parametrosBody, string[]? parametrosButton) {
 			List<object> componentes = [];
 			if (parametrosHeader != null && parametrosHeader.Length > 0) {
 				componentes.Add(new {
 					type = "header",
-					parameters = parametrosHeader.Select(h => new { type = "text", text = h }).ToArray()
+					parameters = parametrosHeader.Select(h => new { type = "text", text = LimpiarParametroWhatsapp(h) }).ToArray()
 				});
 			}
 			if (parametrosBody != null && parametrosBody.Length > 0) {
 				componentes.Add(new {
 					type = "body",
-					parameters = parametrosBody.Select(b => new { type = "text", text = b }).ToArray()
+					parameters = parametrosBody.Select(b => new { type = "text", text = LimpiarParametroWhatsapp(b) }).ToArray()
 				});
 			}
 			if (parametrosButton != null && parametrosButton.Length > 0) {
@@ -34,7 +38,7 @@ namespace LibreriaCompartida.Helpers {
 					sub_type = "url",
 					index = "0",
 					parameters = new[] { 
-						new { type = "text", text = b }
+						new { type = "text", text = LimpiarParametroWhatsapp(b) }
 					}
 				}).ToList());
 			}
